@@ -491,7 +491,7 @@ const server = new Server({
 server.setRequestHandler(ListToolsRequestSchema, async () => {
   console.error("Ferramenta requesitada pelo cliente");
 
-  // Retornar as ferramentas no formato esperado pelo n8n
+  // Retornar as ferramentas no formato original
   return { tools: TOOL_DEFINITIONS };
 });
 
@@ -505,7 +505,7 @@ const ListToolsJSONRPCSchema = z.object({
 server.setRequestHandler(ListToolsJSONRPCSchema, async (request) => {
   console.error("Recebida requisição JSON-RPC para listTools");
 
-  // Retornar as ferramentas no formato esperado pelo n8n
+  // Retornar as ferramentas no formato original
   return {
     jsonrpc: '2.0',
     id: request.id,
@@ -599,24 +599,6 @@ async function main() {
   console.error("Ferramentas disponíveis:");
   TOOL_DEFINITIONS.forEach(tool => {
     console.error(`- ${tool.name}: ${tool.description}`);
-  });
-
-  // Adicionar handler para mensagens JSON-RPC brutas
-  process.stdin.on('data', async (data) => {
-    try {
-      const message = JSON.parse(data.toString());
-      if (message.method === 'listTools') {
-        console.error('Recebida requisição JSON-RPC bruta para listTools');
-        const response = {
-          jsonrpc: '2.0',
-          id: message.id,
-          result: { tools: TOOL_DEFINITIONS }
-        };
-        console.log(JSON.stringify(response));
-      }
-    } catch (error) {
-      // Ignorar erros de parsing JSON
-    }
   });
 
   // Sinalizar que estamos prontos para o n8n
