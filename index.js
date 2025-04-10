@@ -41,35 +41,35 @@ const PORT = process.env.PORT || 8082;
 const schemas = {
   toolInputs: {
     facebookListAdAccounts: z.object({}),
-    
+
     facebookAccountInfo: z.object({
       accountId: z.string().describe("ID da conta do Facebook (formato: act_XXXXXXXXX)")
     }),
-    
+
     facebookInsightsGet: z.object({
       accountId: z.string().describe("ID da conta do Facebook (formato: act_XXXXXXXXX)"),
       metrics: z.array(z.string()).describe("Lista de métricas a serem recuperadas (ex: impressions, clicks, spend)"),
       date_preset: z.string().optional().describe("Período de tempo predefinido (ex: today, yesterday, last_7d, last_30d)"),
       time_increment: z.number().optional().describe("Incremento de tempo em dias (1 = diário, 7 = semanal, 30 = mensal)")
     }),
-    
+
     facebookCampaigns: z.object({
       accountId: z.string().describe("ID da conta do Facebook (formato: act_XXXXXXXXX)"),
       status: z.string().optional().describe("Status das campanhas a serem recuperadas (ACTIVE, PAUSED, ARCHIVED, ALL)")
     }),
-    
+
     facebookAdsets: z.object({
       accountId: z.string().describe("ID da conta do Facebook (formato: act_XXXXXXXXX)"),
       campaignId: z.string().optional().describe("ID da campanha"),
       status: z.string().optional().describe("Status dos conjuntos de anúncios a serem recuperados (ACTIVE, PAUSED, ARCHIVED, ALL)")
     }),
-    
+
     facebookAds: z.object({
       accountId: z.string().describe("ID da conta do Facebook (formato: act_XXXXXXXXX)"),
       adsetId: z.string().optional().describe("ID do conjunto de anúncios"),
       status: z.string().optional().describe("Status dos anúncios a serem recuperados (ACTIVE, PAUSED, ARCHIVED, ALL)")
     }),
-    
+
     facebookInsights: z.object({
       endpoint: z.string().describe("Endpoint da API do Facebook (ex: me/adaccounts, act_XXXXXXXXX/insights)"),
       method: z.enum(["GET", "POST"]).default("GET").describe("Método HTTP (GET, POST)"),
@@ -96,9 +96,9 @@ const TOOL_DEFINITIONS = [
     inputSchema: {
       type: "object",
       properties: {
-        accountId: { 
-          type: "string", 
-          description: "ID da conta do Facebook (formato: act_XXXXXXXXX)" 
+        accountId: {
+          type: "string",
+          description: "ID da conta do Facebook (formato: act_XXXXXXXXX)"
         }
       },
       required: ["accountId"]
@@ -110,22 +110,22 @@ const TOOL_DEFINITIONS = [
     inputSchema: {
       type: "object",
       properties: {
-        accountId: { 
-          type: "string", 
-          description: "ID da conta do Facebook (formato: act_XXXXXXXXX)" 
+        accountId: {
+          type: "string",
+          description: "ID da conta do Facebook (formato: act_XXXXXXXXX)"
         },
-        metrics: { 
-          type: "array", 
+        metrics: {
+          type: "array",
           items: { type: "string" },
-          description: "Lista de métricas a serem recuperadas (ex: impressions, clicks, spend)" 
+          description: "Lista de métricas a serem recuperadas (ex: impressions, clicks, spend)"
         },
-        date_preset: { 
-          type: "string", 
-          description: "Período de tempo predefinido (ex: today, yesterday, last_7d, last_30d)" 
+        date_preset: {
+          type: "string",
+          description: "Período de tempo predefinido (ex: today, yesterday, last_7d, last_30d)"
         },
-        time_increment: { 
-          type: "number", 
-          description: "Incremento de tempo em dias (1 = diário, 7 = semanal, 30 = mensal)" 
+        time_increment: {
+          type: "number",
+          description: "Incremento de tempo em dias (1 = diário, 7 = semanal, 30 = mensal)"
         }
       },
       required: ["accountId", "metrics"]
@@ -137,13 +137,13 @@ const TOOL_DEFINITIONS = [
     inputSchema: {
       type: "object",
       properties: {
-        accountId: { 
-          type: "string", 
-          description: "ID da conta do Facebook (formato: act_XXXXXXXXX)" 
+        accountId: {
+          type: "string",
+          description: "ID da conta do Facebook (formato: act_XXXXXXXXX)"
         },
-        status: { 
-          type: "string", 
-          description: "Status das campanhas a serem recuperadas (ACTIVE, PAUSED, ARCHIVED, ALL)" 
+        status: {
+          type: "string",
+          description: "Status das campanhas a serem recuperadas (ACTIVE, PAUSED, ARCHIVED, ALL)"
         }
       },
       required: ["accountId"]
@@ -155,17 +155,17 @@ const TOOL_DEFINITIONS = [
     inputSchema: {
       type: "object",
       properties: {
-        accountId: { 
-          type: "string", 
-          description: "ID da conta do Facebook (formato: act_XXXXXXXXX)" 
+        accountId: {
+          type: "string",
+          description: "ID da conta do Facebook (formato: act_XXXXXXXXX)"
         },
-        campaignId: { 
-          type: "string", 
-          description: "ID da campanha" 
+        campaignId: {
+          type: "string",
+          description: "ID da campanha"
         },
-        status: { 
-          type: "string", 
-          description: "Status dos conjuntos de anúncios a serem recuperados (ACTIVE, PAUSED, ARCHIVED, ALL)" 
+        status: {
+          type: "string",
+          description: "Status dos conjuntos de anúncios a serem recuperados (ACTIVE, PAUSED, ARCHIVED, ALL)"
         }
       },
       required: ["accountId"]
@@ -177,17 +177,17 @@ const TOOL_DEFINITIONS = [
     inputSchema: {
       type: "object",
       properties: {
-        accountId: { 
-          type: "string", 
-          description: "ID da conta do Facebook (formato: act_XXXXXXXXX)" 
+        accountId: {
+          type: "string",
+          description: "ID da conta do Facebook (formato: act_XXXXXXXXX)"
         },
-        adsetId: { 
-          type: "string", 
-          description: "ID do conjunto de anúncios" 
+        adsetId: {
+          type: "string",
+          description: "ID do conjunto de anúncios"
         },
-        status: { 
-          type: "string", 
-          description: "Status dos anúncios a serem recuperados (ACTIVE, PAUSED, ARCHIVED, ALL)" 
+        status: {
+          type: "string",
+          description: "Status dos anúncios a serem recuperados (ACTIVE, PAUSED, ARCHIVED, ALL)"
         }
       },
       required: ["accountId"]
@@ -199,22 +199,22 @@ const TOOL_DEFINITIONS = [
     inputSchema: {
       type: "object",
       properties: {
-        endpoint: { 
-          type: "string", 
-          description: "Endpoint da API do Facebook (ex: me/adaccounts, act_XXXXXXXXX/insights)" 
+        endpoint: {
+          type: "string",
+          description: "Endpoint da API do Facebook (ex: me/adaccounts, act_XXXXXXXXX/insights)"
         },
-        method: { 
-          type: "string", 
+        method: {
+          type: "string",
           enum: ["GET", "POST"],
-          description: "Método HTTP (GET, POST)" 
+          description: "Método HTTP (GET, POST)"
         },
-        queryParams: { 
-          type: "object", 
-          description: "Parâmetros de consulta para a API" 
+        queryParams: {
+          type: "object",
+          description: "Parâmetros de consulta para a API"
         },
-        body: { 
-          type: "object", 
-          description: "Corpo da requisição para métodos POST" 
+        body: {
+          type: "object",
+          description: "Corpo da requisição para métodos POST"
         }
       },
       required: ["endpoint"]
@@ -233,15 +233,15 @@ async function facebookApiRequest(endpoint, method = 'GET', queryParams = {}, bo
     // Construir URL com parâmetros de consulta
     const baseUrl = 'https://graph.facebook.com/v19.0';
     const url = `${baseUrl}/${endpoint}`;
-    
+
     // Adicionar token de acesso aos parâmetros de consulta
     const params = {
       access_token: fbConfig.FB_ACCESS_TOKEN,
       ...queryParams
     };
-    
+
     console.error(`Fazendo requisição ${method} para ${url}`);
-    
+
     // Fazer requisição à API do Facebook
     const response = await axios({
       method,
@@ -249,9 +249,9 @@ async function facebookApiRequest(endpoint, method = 'GET', queryParams = {}, bo
       params,
       data: body
     });
-    
+
     console.error(`Resposta da API do Facebook: ${response.status}`);
-    
+
     return {
       status: response.status,
       data: response.data
@@ -275,14 +275,14 @@ const toolHandlers = {
   "facebook-list-ad-accounts": async (args) => {
     // Validar parâmetros de entrada
     schemas.toolInputs.facebookListAdAccounts.parse(args);
-    
+
     console.error('Listando Contas de Anúncios do Facebook');
-    
+
     // Fazer requisição à API do Facebook
     const response = await facebookApiRequest('me/adaccounts', 'GET', {
       fields: 'id,name,account_id,account_status'
     });
-    
+
     // Formatar resposta
     return {
       content: [{
@@ -291,19 +291,19 @@ const toolHandlers = {
       }]
     };
   },
-  
+
   // Obtém informações detalhadas sobre uma conta específica
   "facebook-account-info": async (args) => {
     // Validar parâmetros de entrada
     const parsed = schemas.toolInputs.facebookAccountInfo.parse(args);
-    
+
     console.error(`Obtendo informações da conta: ${parsed.accountId}`);
-    
+
     // Fazer requisição à API do Facebook
     const response = await facebookApiRequest(`${parsed.accountId}`, 'GET', {
       fields: 'id,name,account_id,account_status,age,amount_spent,balance,business,business_city,business_country_code,business_name,business_state,business_street,business_street2,business_zip,capabilities,created_time,currency,disable_reason,end_advertiser,end_advertiser_name,existing_customers,fb_entity,funding_source,funding_source_details,has_migrated_permissions,io_number,is_attribution_spec_system_default,is_direct_deals_enabled,is_in_3ds_authorization_enabled_market,is_notifications_enabled,is_personal,is_prepay_account,is_tax_id_required,line_numbers,media_agency,min_campaign_group_spend_cap,min_daily_budget,owner,partner,tax_id,tax_id_status,tax_id_type,timezone_id,timezone_name,timezone_offset_hours_utc,rf_spec,user_tasks,user_tos_accepted'
     });
-    
+
     // Formatar resposta
     return {
       content: [{
@@ -312,32 +312,32 @@ const toolHandlers = {
       }]
     };
   },
-  
+
   // Recupera dados de insights para uma conta específica
   "facebook-insights-get": async (args) => {
     // Validar parâmetros de entrada
     const parsed = schemas.toolInputs.facebookInsightsGet.parse(args);
-    
+
     console.error(`Obtendo insights para a conta: ${parsed.accountId}`);
-    
+
     // Preparar parâmetros de consulta
     const queryParams = {
       fields: parsed.metrics.join(','),
       level: 'account'
     };
-    
+
     // Adicionar parâmetros opcionais se fornecidos
     if (parsed.date_preset) {
       queryParams.date_preset = parsed.date_preset;
     }
-    
+
     if (parsed.time_increment) {
       queryParams.time_increment = parsed.time_increment;
     }
-    
+
     // Fazer requisição à API do Facebook
     const response = await facebookApiRequest(`${parsed.accountId}/insights`, 'GET', queryParams);
-    
+
     // Formatar resposta
     return {
       content: [{
@@ -346,27 +346,27 @@ const toolHandlers = {
       }]
     };
   },
-  
+
   // Obtém campanhas para uma conta específica
   "facebook-campaigns": async (args) => {
     // Validar parâmetros de entrada
     const parsed = schemas.toolInputs.facebookCampaigns.parse(args);
-    
+
     console.error(`Obtendo campanhas para a conta: ${parsed.accountId}`);
-    
+
     // Preparar parâmetros de consulta
     const queryParams = {
       fields: 'id,name,status,objective,buying_type,special_ad_categories,start_time,stop_time,daily_budget,lifetime_budget,budget_remaining,insights{impressions,clicks,spend}'
     };
-    
+
     // Adicionar filtro de status se fornecido
     if (parsed.status && parsed.status !== 'ALL') {
       queryParams.effective_status = [parsed.status];
     }
-    
+
     // Fazer requisição à API do Facebook
     const response = await facebookApiRequest(`${parsed.accountId}/campaigns`, 'GET', queryParams);
-    
+
     // Formatar resposta
     return {
       content: [{
@@ -375,34 +375,34 @@ const toolHandlers = {
       }]
     };
   },
-  
+
   // Obtém conjuntos de anúncios para uma campanha ou conta
   "facebook-adsets": async (args) => {
     // Validar parâmetros de entrada
     const parsed = schemas.toolInputs.facebookAdsets.parse(args);
-    
+
     console.error(`Obtendo conjuntos de anúncios para a conta: ${parsed.accountId}`);
-    
+
     // Determinar o endpoint com base nos parâmetros
     let endpoint = `${parsed.accountId}/adsets`;
     if (parsed.campaignId) {
       endpoint = `${parsed.campaignId}/adsets`;
       console.error(`Filtrando por campanha: ${parsed.campaignId}`);
     }
-    
+
     // Preparar parâmetros de consulta
     const queryParams = {
       fields: 'id,name,status,campaign_id,daily_budget,lifetime_budget,budget_remaining,targeting,bid_amount,billing_event,optimization_goal,attribution_spec'
     };
-    
+
     // Adicionar filtro de status se fornecido
     if (parsed.status && parsed.status !== 'ALL') {
       queryParams.effective_status = [parsed.status];
     }
-    
+
     // Fazer requisição à API do Facebook
     const response = await facebookApiRequest(endpoint, 'GET', queryParams);
-    
+
     // Formatar resposta
     return {
       content: [{
@@ -411,34 +411,34 @@ const toolHandlers = {
       }]
     };
   },
-  
+
   // Obtém anúncios para um conjunto de anúncios ou conta
   "facebook-ads": async (args) => {
     // Validar parâmetros de entrada
     const parsed = schemas.toolInputs.facebookAds.parse(args);
-    
+
     console.error(`Obtendo anúncios para a conta: ${parsed.accountId}`);
-    
+
     // Determinar o endpoint com base nos parâmetros
     let endpoint = `${parsed.accountId}/ads`;
     if (parsed.adsetId) {
       endpoint = `${parsed.adsetId}/ads`;
       console.error(`Filtrando por conjunto de anúncios: ${parsed.adsetId}`);
     }
-    
+
     // Preparar parâmetros de consulta
     const queryParams = {
       fields: 'id,name,status,adset_id,creative,tracking_specs,bid_amount'
     };
-    
+
     // Adicionar filtro de status se fornecido
     if (parsed.status && parsed.status !== 'ALL') {
       queryParams.effective_status = [parsed.status];
     }
-    
+
     // Fazer requisição à API do Facebook
     const response = await facebookApiRequest(endpoint, 'GET', queryParams);
-    
+
     // Formatar resposta
     return {
       content: [{
@@ -447,18 +447,18 @@ const toolHandlers = {
       }]
     };
   },
-  
+
   // Handler genérico para fazer chamadas personalizadas à API do Facebook
   "facebook-insights": async (args) => {
     // Validar parâmetros de entrada
     const parsed = schemas.toolInputs.facebookInsights.parse(args);
-    
+
     console.error(`Recebida solicitação para Facebook Insights: ${JSON.stringify({
       endpoint: parsed.endpoint,
       method: parsed.method,
       queryParams: parsed.queryParams
     })}`);
-    
+
     // Fazer requisição à API do Facebook
     const response = await facebookApiRequest(
       parsed.endpoint,
@@ -466,7 +466,7 @@ const toolHandlers = {
       parsed.queryParams || {},
       parsed.body || null
     );
-    
+
     // Formatar resposta
     return {
       content: [{
@@ -493,18 +493,27 @@ server.setRequestHandler(ListToolsRequestSchema, async () => {
   return { tools: TOOL_DEFINITIONS };
 });
 
+// Adicionar handler para o método listTools (compatível com n8n)
+server.setRequestHandler({
+  method: 'listTools',
+  params: z.object({})
+}, async () => {
+  console.error("Listando ferramentas disponíveis (método listTools)");
+  return { tools: TOOL_DEFINITIONS };
+});
+
 // Configurar handler para executar ferramentas
 server.setRequestHandler(CallToolRequestSchema, async (request) => {
   const { name, arguments: args } = request.params;
   console.error(`Executando ferramenta: ${name}`);
-  
+
   try {
     // Verificar se a ferramenta existe
     const handler = toolHandlers[name];
     if (!handler) {
       throw new Error(`Ferramenta desconhecida: ${name}`);
     }
-    
+
     // Executar a ferramenta
     return await handler(args);
   } catch (error) {
@@ -520,7 +529,7 @@ async function main() {
     console.error('⚠️ ATENÇÃO: Credenciais do Facebook não configuradas!');
     console.error('O servidor pode não funcionar corretamente.');
   }
-  
+
   // Iniciar servidor com transporte STDIO
   const transport = new StdioServerTransport();
   await server.connect(transport);
@@ -538,13 +547,13 @@ const args = process.argv.slice(2);
 if (args.length > 0) {
   const funcao = args[0];
   const input = args[1] ? JSON.parse(args[1]) : {};
-  
+
   // Exibir informações de configuração
   console.error("🔐 Variáveis de ambiente utilizadas:");
   console.error("FB_APP_ID:", fbConfig.FB_APP_ID);
   console.error("FB_APP_SECRET:", fbConfig.FB_APP_SECRET ? "***" : "não configurado");
   console.error("FB_ACCESS_TOKEN:", fbConfig.FB_ACCESS_TOKEN ? fbConfig.FB_ACCESS_TOKEN.substring(0, 10) + "..." : "não configurado");
-  
+
   // Executar ferramenta
   if (toolHandlers[funcao]) {
     toolHandlers[funcao](input)
