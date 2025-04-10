@@ -542,6 +542,9 @@ async function main() {
   TOOL_DEFINITIONS.forEach(tool => {
     console.error(`- ${tool.name}: ${tool.description}`);
   });
+
+  // Sinalizar que estamos prontos para o n8n
+  console.log(JSON.stringify({ ready: true }));
 }
 
 // Verificar argumentos de linha de comando
