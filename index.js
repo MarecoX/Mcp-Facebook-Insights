@@ -357,7 +357,7 @@ const toolHandlers = {
 
       // Fazer requisição à API do Facebook
       const response = await facebookApiRequest(`${parsed.accountId}`, 'GET', {
-        fields: 'id,name,account_id,account_status,currency,timezone_name,business_name,business_id,owner'
+        fields: 'id,name,account_id,account_status,currency,timezone_name,business_name,owner'
       });
 
       // Verificar se houve erro na resposta
