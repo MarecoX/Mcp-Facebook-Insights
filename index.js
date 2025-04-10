@@ -40,7 +40,9 @@ const PORT = process.env.PORT || 8082;
 // Esquemas de validação para parâmetros de entrada
 const schemas = {
   toolInputs: {
-    facebookListAdAccounts: z.object({}),
+    facebookListAdAccounts: z.object({
+      fields: z.string().optional().default("id,name,account_id,account_status")
+    }),
 
     facebookAccountInfo: z.object({
       accountId: z.string().describe("ID da conta do Facebook (formato: act_XXXXXXXXX)")
@@ -81,13 +83,20 @@ const schemas = {
 
 // Definições de ferramentas
 const TOOL_DEFINITIONS = [
-  {
-    name: "facebook-list-ad-accounts",
-    description: "Lista todas as contas de anúncios do Facebook disponíveis",
-    inputSchema: {
-      type: "object",
-      properties: {},
-      required: []
+  { 
+    name: "facebook-list-ad-accounts", 
+    description: "Lista todas as contas de anúncios do Facebook disponíveis para o usuário autenticado", 
+    inputSchema: { 
+      type: "object", 
+      properties: {
+        fields: {
+          type: "string",
+          description: "Campos a serem retornados na resposta",
+          default: "id,name,account_id,account_status"
+        }
+      }, 
+      required: [], 
+      description: "Especifica os campos a serem incluídos na resposta. Por padrão, retorna id, nome, ID da conta e status da conta."
     }
   },
   {
