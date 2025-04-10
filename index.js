@@ -491,17 +491,8 @@ const server = new Server({
 server.setRequestHandler(ListToolsRequestSchema, async () => {
   console.error("Ferramenta requesitada pelo cliente");
 
-  // Transformar as ferramentas para o formato esperado pela OpenAI
-  const openAITools = TOOL_DEFINITIONS.map(tool => ({
-    type: "function",
-    function: {
-      name: tool.name,
-      description: tool.description,
-      parameters: tool.inputSchema
-    }
-  }));
-
-  return { tools: openAITools };
+  // Retornar as ferramentas no formato original
+  return { tools: TOOL_DEFINITIONS };
 });
 
 // Adicionar handler para o método listTools (compatível com JSON-RPC 2.0)
@@ -514,20 +505,11 @@ const ListToolsJSONRPCSchema = z.object({
 server.setRequestHandler(ListToolsJSONRPCSchema, async (request) => {
   console.error("Recebida requisição JSON-RPC para listTools");
 
-  // Transformar as ferramentas para o formato esperado pela OpenAI
-  const openAITools = TOOL_DEFINITIONS.map(tool => ({
-    type: "function",
-    function: {
-      name: tool.name,
-      description: tool.description,
-      parameters: tool.inputSchema
-    }
-  }));
-
+  // Retornar as ferramentas no formato original
   return {
     jsonrpc: '2.0',
     id: request.id,
-    result: { tools: openAITools }
+    result: { tools: TOOL_DEFINITIONS }
   };
 });
 
