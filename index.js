@@ -287,7 +287,7 @@ async function facebookApiRequest(endpoint, method = 'GET', queryParams = {}, bo
     }
 
     // Construir URL com parâmetros de consulta
-    const baseUrl = 'https://graph.facebook.com/v19.0';
+    const baseUrl = 'https://graph.facebook.com/v22.0';
     const url = `${baseUrl}/${endpoint}`;
 
     // Adicionar token de acesso aos parâmetros de consulta
