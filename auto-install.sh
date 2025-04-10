@@ -45,41 +45,41 @@ mkdir -p /tmp/mcp_facebook
 # Verificar se o git está instalado
 if ! command -v git &> /dev/null; then
   print_warning "Git não encontrado. Tentando baixar usando curl..."
-  
+
   # Verificar se o curl está instalado
   if ! command -v curl &> /dev/null; then
     print_error "Nem git nem curl estão instalados. Não é possível baixar o código."
     print_message "Tente instalar o git ou curl primeiro, ou baixe manualmente os arquivos."
     exit 1
   fi
-  
+
   # Baixar arquivos usando curl
   print_message "Baixando arquivos usando curl..."
   curl -L -o /tmp/mcp_facebook_main.zip https://github.com/MarecoX/mcp-facebook-insights/archive/refs/heads/main.zip
-  
+
   # Verificar se o unzip está instalado
   if ! command -v unzip &> /dev/null; then
     print_error "unzip não está instalado. Não é possível extrair o arquivo zip."
     exit 1
   fi
-  
+
   # Extrair arquivos
   print_message "Extraindo arquivos..."
   unzip -q /tmp/mcp_facebook_main.zip -d /tmp
-  
+
   # Mover arquivos para o diretório correto
   cp -r /tmp/mcp-facebook-insights-main/* /tmp/mcp_facebook/
-  
+
   # Limpar arquivos temporários
   rm -rf /tmp/mcp_facebook_main.zip /tmp/mcp-facebook-insights-main
 else
   # Baixar código do GitHub usando git
   print_message "Baixando código do GitHub..."
   git clone https://github.com/MarecoX/mcp-facebook-insights.git /tmp/mcp_facebook_temp
-  
+
   # Mover arquivos para o diretório correto
   cp -r /tmp/mcp_facebook_temp/* /tmp/mcp_facebook/
-  
+
   # Limpar diretório temporário
   rm -rf /tmp/mcp_facebook_temp
 fi
@@ -96,24 +96,24 @@ print_message "Instalando dependências..."
 cd /tmp/mcp_facebook
 npm install
 
-# Solicitar credenciais do Facebook
-print_message "Configurando credenciais do Facebook..."
+# Informações sobre configuração
+print_message "Informações sobre configuração..."
 echo ""
 print_warning "As credenciais do Facebook são necessárias para o funcionamento do servidor MCP."
+print_warning "Recomendamos configurar as credenciais diretamente no nó 'Execute Command' do n8n."
 echo ""
 
-read -p "Digite seu Facebook App ID: " FB_APP_ID
-read -p "Digite seu Facebook App Secret: " FB_APP_SECRET
-read -p "Digite seu Facebook Access Token: " FB_ACCESS_TOKEN
-read -p "Digite a porta para o servidor MCP (padrão: 8082): " PORT
-PORT=${PORT:-8082}
+# Definir porta padrão
+PORT=8082
 
-# Criar arquivo .env
-print_message "Criando arquivo .env..."
-cat > /tmp/mcp_facebook/.env << EOL
-FB_APP_ID=${FB_APP_ID}
-FB_APP_SECRET=${FB_APP_SECRET}
-FB_ACCESS_TOKEN=${FB_ACCESS_TOKEN}
+# Criar arquivo .env vazio apenas como referência
+print_message "Criando arquivo .env de exemplo..."
+cat > /tmp/mcp_facebook/.env.example << EOL
+# Exemplo de configuração - NÃO PREENCHA ESTE ARQUIVO
+# Configure estas variáveis no nó 'Execute Command' do n8n
+FB_APP_ID=seu_app_id
+FB_APP_SECRET=seu_app_secret
+FB_ACCESS_TOKEN=seu_access_token
 PORT=${PORT}
 EOL
 
@@ -121,11 +121,6 @@ EOL
 print_message "Criando script de inicialização..."
 cat > /tmp/mcp_facebook/start.sh << EOL
 #!/bin/bash
-
-# Carregar variáveis de ambiente
-if [ -f "/tmp/mcp_facebook/.env" ]; then
-  export \$(cat /tmp/mcp_facebook/.env | grep -v '^#' | xargs)
-fi
 
 # Iniciar servidor MCP
 cd /tmp/mcp_facebook
@@ -140,8 +135,13 @@ print_success "Instalação concluída com sucesso!"
 echo ""
 print_message "Para iniciar o servidor MCP, configure um nó 'Execute Command' no n8n com:"
 echo ""
-echo "Command: bash"
-echo "Arguments: /tmp/mcp_facebook/start.sh"
+echo "Command: node"
+echo "Arguments: /tmp/mcp_facebook/index.js"
+echo "Environment Variables:"
+echo "FB_APP_ID=seu_app_id"
+echo "FB_APP_SECRET=seu_app_secret"
+echo "FB_ACCESS_TOKEN=seu_access_token"
+echo "PORT=${PORT}  # opcional"
 echo ""
 print_message "Para usar o servidor MCP, configure um nó 'MCP Client' com:"
 echo ""
@@ -150,15 +150,15 @@ echo "URL para executeTool: http://localhost:${PORT}/execute"
 echo ""
 print_message "Agora você pode usar o servidor MCP do Facebook Insights no n8n!"
 echo ""
-print_warning "Lembre-se de que as credenciais do Facebook estão armazenadas em /tmp/mcp_facebook/.env"
-echo ""
 
-# Perguntar se deseja iniciar o servidor agora
-read -p "Deseja iniciar o servidor MCP agora? (s/n): " START_SERVER
+# Perguntar se deseja testar o servidor agora
+read -p "Deseja testar o servidor MCP agora? (s/n): " START_SERVER
 if [[ $START_SERVER == "s" || $START_SERVER == "S" ]]; then
-  print_message "Iniciando servidor MCP..."
-  bash /tmp/mcp_facebook/start.sh
+  print_message "Iniciando servidor MCP para teste (pressione Ctrl+C para parar)..."
+  print_warning "Lembre-se: Este é apenas um teste. Para uso real, configure o servidor no n8n."
+  cd /tmp/mcp_facebook
+  node index.js
 else
-  print_message "Você pode iniciar o servidor manualmente executando:"
-  echo "bash /tmp/mcp_facebook/start.sh"
+  print_message "Você pode testar o servidor manualmente executando:"
+  echo "cd /tmp/mcp_facebook && node index.js"
 fi
