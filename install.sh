@@ -6,7 +6,23 @@ vermelho="\e[31m"
 amarelo="\e[33m"
 azul="\e[34m"
 roxo="\e[35m"
+ciano="\e[36m"
 reset="\e[0m"
+
+# Banner
+echo -e "${ciano}"
+echo -e "  __  __  _____  _____    ______              _                 _      ___            _       _      _        "
+echo -e " |  \/  |/ __  \|  _  |   |  ___|            | |               | |    |_  |          (_)     | |    | |       "
+echo -e " | .  . |\`' / /'| |_| |   | |_ __ _  ___ ___| |__   ___   ___ | | __   | | _ __  ___ _  __ _| |__  | |_ ___ "
+echo -e " | |\/| |  / /  |  ___|   |  _/ _\` |/ __/ _ \ '_ \ / _ \ / _ \| |/ /   | || '_ \/ __| |/ _\` | '_ \ | __/ __|"
+echo -e " | |  | |./ /___| |      | || (_| | (_|  __/ |_) | (_) | (_) |   </\__/ /| | | \__ \ | (_| | | | || |_\__ \"
+echo -e " \_|  |_|\_____/\_|      \_| \__,_|\___\___|_.__/ \___/ \___/|_|\_\____/ |_| |_|___/_|\__, |_| |_| \__|___/"
+echo -e "                                                                                         __/ |               "
+echo -e "                                                                                        |___/                "
+echo -e "${reset}"
+echo -e "${verde}Desenvolvido com ${roxo}Augment AI ${verde}🤖${reset}"
+echo -e "${azul}==================================================${reset}"
+echo -e ""
 
 # Verificar sistema operacional
 if [ -f /etc/debian_version ]; then
@@ -117,13 +133,56 @@ echo -e "- facebook-insights: Handler genérico para API do Facebook"
 echo ""
 echo -e "${verde}==================================================${reset}"
 
-# Perguntar se deseja testar o servidor
-read -p "Deseja testar o servidor MCP agora? (s/n): " testar
-if [[ "$testar" == "s" || "$testar" == "S" ]]; then
-    echo -e "${azul}Testando o servidor MCP...${reset}"
-    echo -e "${amarelo}Pressione Ctrl+C para encerrar o teste.${reset}"
-    node index.js
+# Perguntar se deseja configurar as credenciais
+read -p "${amarelo}Deseja configurar as credenciais do Facebook agora? (s/n): ${reset}" configurar
+if [[ "$configurar" == "s" || "$configurar" == "S" ]]; then
+    echo -e "${azul}Configurando credenciais do Facebook...${reset}"
+    read -p "Digite seu Facebook App ID: " fb_app_id
+    read -p "Digite seu Facebook App Secret: " fb_app_secret
+    read -p "Digite seu Facebook Access Token: " fb_access_token
+
+    # Salvar credenciais em um arquivo .env
+    echo "FB_APP_ID=$fb_app_id" > .env
+    echo "FB_APP_SECRET=$fb_app_secret" >> .env
+    echo "FB_ACCESS_TOKEN=$fb_access_token" >> .env
+
+    echo -e "${verde}Credenciais salvas no arquivo .env${reset}"
+
+    # Perguntar se deseja testar com as credenciais
+    read -p "${amarelo}Deseja testar o servidor com suas credenciais? (s/n): ${reset}" testar_cred
+    if [[ "$testar_cred" == "s" || "$testar_cred" == "S" ]]; then
+        echo -e "${azul}Testando o servidor MCP com suas credenciais...${reset}"
+        echo -e "${amarelo}Listando contas de anúncios disponíveis:${reset}"
+        FB_APP_ID="$fb_app_id" FB_APP_SECRET="$fb_app_secret" FB_ACCESS_TOKEN="$fb_access_token" node index.js facebook-list-ad-accounts
+        echo -e "\n${verde}Teste concluído!${reset}"
+
+        # Perguntar se deseja iniciar o servidor
+        read -p "${amarelo}Deseja iniciar o servidor MCP agora? (s/n): ${reset}" iniciar
+        if [[ "$iniciar" == "s" || "$iniciar" == "S" ]]; then
+            echo -e "${azul}Iniciando o servidor MCP...${reset}"
+            echo -e "${amarelo}Pressione Ctrl+C para encerrar o servidor.${reset}"
+            FB_APP_ID="$fb_app_id" FB_APP_SECRET="$fb_app_secret" FB_ACCESS_TOKEN="$fb_access_token" node index.js
+        fi
+    else
+        # Perguntar se deseja iniciar o servidor
+        read -p "${amarelo}Deseja iniciar o servidor MCP agora? (s/n): ${reset}" iniciar
+        if [[ "$iniciar" == "s" || "$iniciar" == "S" ]]; then
+            echo -e "${azul}Iniciando o servidor MCP...${reset}"
+            echo -e "${amarelo}Pressione Ctrl+C para encerrar o servidor.${reset}"
+            FB_APP_ID="$fb_app_id" FB_APP_SECRET="$fb_app_secret" FB_ACCESS_TOKEN="$fb_access_token" node index.js
+        fi
+    fi
 else
-    echo -e "${azul}Você pode testar o servidor manualmente executando:${reset}"
-    echo -e "${verde}cd /tmp/mcp_facebook && node index.js${reset}"
+    # Perguntar se deseja testar o servidor sem credenciais
+    read -p "${amarelo}Deseja testar o servidor MCP sem credenciais? (s/n): ${reset}" testar
+    if [[ "$testar" == "s" || "$testar" == "S" ]]; then
+        echo -e "${azul}Testando o servidor MCP...${reset}"
+        echo -e "${amarelo}Pressione Ctrl+C para encerrar o teste.${reset}"
+        node index.js
+    else
+        echo -e "${azul}Você pode testar o servidor manualmente executando:${reset}"
+        echo -e "${verde}cd /tmp/mcp_facebook && node index.js${reset}"
+    fi
 fi
+
+echo -e "\n${roxo}Obrigado por usar o MCP Facebook Insights! 🚀${reset}"
