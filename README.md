@@ -14,7 +14,7 @@ Este servidor implementa o protocolo MCP (Model Context Protocol) para permitir 
 
 1. Clone este repositório:
    ```bash
-   git clone https://github.com/seu-usuario/mcp-facebook-insights.git
+   git clone https://github.com/MarecoX/mcp-facebook-insights.git
    cd mcp-facebook-insights
    ```
 
@@ -49,19 +49,19 @@ Use nosso script de auto-instalação que configura tudo automaticamente:
 
 2. Execute o script de auto-instalação:
    ```bash
-   curl -s https://raw.githubusercontent.com/MarecoX/mcp-facebook-insights/main/auto-install.sh | bash
+   curl -s https://raw.githubusercontent.com/MarecoX/mcp-facebook-insights/main/install.sh | bash
    ```
 
-3. Siga as instruções na tela para configurar suas credenciais do Facebook.
-
-4. Configure o nó "Execute Command" no n8n conforme as instruções exibidas pelo instalador.
+3. Siga as instruções na tela para configurar o MCP no n8n.
 
 #### Opção 2: Instalação Manual
 
-1. Copie os arquivos `index.js` e `package.json` para o diretório `/tmp/mcp_facebook/` no seu servidor n8n:
+1. Copie os arquivos para o diretório `/tmp/mcp_facebook/` no seu servidor n8n:
    ```bash
    mkdir -p /tmp/mcp_facebook
-   cp index.js package.json /tmp/mcp_facebook/
+   cd /tmp/mcp_facebook
+   curl -s -L -o index.js https://raw.githubusercontent.com/MarecoX/mcp-facebook-insights/main/index.js
+   curl -s -L -o package.json https://raw.githubusercontent.com/MarecoX/mcp-facebook-insights/main/package.json
    ```
 
 2. Instale as dependências:
@@ -70,14 +70,13 @@ Use nosso script de auto-instalação que configura tudo automaticamente:
    npm install
    ```
 
-3. Configure o nó "Execute Command" no n8n:
-   - **Command**: `node`
-   - **Arguments**: `/tmp/mcp_facebook/index.js`
-   - **Environment Variables**: É **obrigatório** definir as seguintes variáveis:
+3. Configure o nó "MCP Client" no n8n:
+   - **Comando**: `node`
+   - **Argumentos**: `/tmp/mcp_facebook/index.js`
+   - **Variáveis de ambiente**:
      - `FB_APP_ID`: Seu ID de aplicativo do Facebook
      - `FB_APP_SECRET`: Seu segredo de aplicativo do Facebook
      - `FB_ACCESS_TOKEN`: Seu token de acesso do Facebook
-     - `PORT`: Porta em que o servidor será executado (opcional, padrão: 8082)
 
 ## Obtendo Credenciais do Facebook
 
@@ -95,13 +94,17 @@ Este servidor é compatível com o pacote `n8n-nodes-mcp`, que permite que model
 1. Instale o pacote `n8n-nodes-mcp` no seu n8n.
 
 2. Crie um fluxo de trabalho com os seguintes nós:
-   - Nó "Execute Command" para iniciar o servidor MCP
    - Nó "MCP Client" com a operação "listTools" para listar as ferramentas disponíveis
    - Nó "AI Agent" que pode interagir com as ferramentas MCP
+   - Nó "MCP Client" com a operação "executeTool" para executar uma ferramenta específica
 
-3. Configure o nó "MCP Client" para apontar para o servidor MCP:
-   - URL para listTools: `http://localhost:8082/tools`
-   - URL para executeTool: `http://localhost:8082/execute`
+3. Configure o nó "MCP Client" com as credenciais:
+   - **Comando**: `node`
+   - **Argumentos**: `/tmp/mcp_facebook/index.js`
+   - **Variáveis de ambiente**:
+     - `FB_APP_ID`: Seu ID de aplicativo do Facebook
+     - `FB_APP_SECRET`: Seu segredo de aplicativo do Facebook
+     - `FB_ACCESS_TOKEN`: Seu token de acesso do Facebook
 
 ## Ferramentas Disponíveis
 
@@ -163,11 +166,14 @@ O servidor fornece as seguintes ferramentas MCP:
 }
 ```
 
-## Endpoints da API
+## Arquitetura
 
-- `GET /tools`: Lista todas as ferramentas disponíveis (usado pelo nó MCP Client com operação listTools)
-- `POST /execute`: Executa uma ferramenta (usado pelo nó MCP Client com operação executeTool)
-- `GET /status`: Retorna o status do servidor
+Este servidor MCP utiliza:
+
+- **@modelcontextprotocol/sdk**: SDK oficial do protocolo MCP
+- **StdioServerTransport**: Para comunicação STDIO com o n8n
+- **zod**: Para validação de parâmetros de entrada
+- **axios**: Para fazer requisições à API do Facebook
 
 ## Licença
 
