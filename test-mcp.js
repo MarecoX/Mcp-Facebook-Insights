@@ -42,12 +42,38 @@ setTimeout(() => {
     console.log('\nEnviando requisição listTools no formato n8n...');
     const n8nRequest = { type: 'listTools' };
     mcpProcess.stdin.write(JSON.stringify(n8nRequest) + '\n');
+
+    // Testar execução da ferramenta facebook-list-ad-accounts
+    setTimeout(() => {
+      console.log('\nEnviando requisição executeTool para facebook-list-ad-accounts...');
+      const executeRequest = {
+        jsonrpc: '2.0',
+        id: '2',
+        method: 'executeTool',
+        params: {
+          name: 'facebook-list-ad-accounts',
+          arguments: {}
+        }
+      };
+      mcpProcess.stdin.write(JSON.stringify(executeRequest) + '\n');
+
+      // Testar execução no formato n8n
+      setTimeout(() => {
+        console.log('\nEnviando requisição executeTool no formato n8n...');
+        const n8nExecuteRequest = {
+          type: 'callTool',
+          name: 'facebook-list-ad-accounts',
+          arguments: {}
+        };
+        mcpProcess.stdin.write(JSON.stringify(n8nExecuteRequest) + '\n');
+      }, 1000);
+    }, 1000);
   }, 1000);
 }, 1000);
 
-// Encerrar o processo após 10 segundos
+// Encerrar o processo após 15 segundos
 setTimeout(() => {
   console.log('Encerrando teste...');
   mcpProcess.kill();
   process.exit(0);
-}, 10000);
+}, 15000);
