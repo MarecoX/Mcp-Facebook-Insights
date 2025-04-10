@@ -72,14 +72,14 @@ const schemas = {
 
     facebookInsights: z.object({
       endpoint: z.string().describe("Endpoint da API do Facebook (ex: me/adaccounts, act_XXXXXXXXX/insights)"),
-      method: z.enum(["GET", "POST"]).default("GET").describe("Método HTTP (GET, POST)"),
+      method: z.enum(["GET", "POST"]).optional().describe("Método HTTP (GET, POST)"),
       queryParams: z.record(z.any()).optional().describe("Parâmetros de consulta para a API"),
       body: z.record(z.any()).optional().describe("Corpo da requisição para métodos POST")
     })
   }
 };
 
-// Definições das ferramentas MCP
+// Definições de ferramentas
 const TOOL_DEFINITIONS = [
   {
     name: "facebook-list-ad-accounts",
@@ -116,7 +116,9 @@ const TOOL_DEFINITIONS = [
         },
         metrics: {
           type: "array",
-          items: { type: "string" },
+          items: {
+            type: "string"
+          },
           description: "Lista de métricas a serem recuperadas (ex: impressions, clicks, spend)"
         },
         date_preset: {
@@ -222,7 +224,52 @@ const TOOL_DEFINITIONS = [
   }
 ];
 
-// Função para fazer requisições à API do Facebook
+/**
+ * Função utilitária para formatar respostas no padrão MCP
+ * @param {string} text - Texto da resposta
+ * @param {boolean} isError - Indica se é uma resposta de erro
+ * @returns {Object} Resposta formatada no padrão MCP
+ */
+function formatMcpResponse(text, isError = false) {
+  return {
+    content: [{
+      type: "text",
+      text: text
+    }],
+    isError: isError
+  };
+}
+
+/**
+ * Função utilitária para tratar erros de forma consistente
+ * @param {Error} error - Objeto de erro
+ * @param {string} context - Contexto do erro
+ * @returns {Object} Resposta de erro formatada no padrão MCP
+ */
+function handleError(error, context) {
+  console.error(`Erro em ${context}:`, error);
+  
+  let errorMessage = error.message;
+  
+  // Verificar se é um erro da API do Facebook
+  if (error.response && error.response.data) {
+    console.error('Detalhes do erro da API:', error.response.data);
+    if (error.response.data.error) {
+      errorMessage = `Erro da API do Facebook: ${error.response.data.error.message} (código: ${error.response.data.error.code})`;
+    }
+  }
+  
+  return formatMcpResponse(`Erro: ${errorMessage}`, true);
+}
+
+/**
+ * Função para fazer requisições à API do Facebook com tratamento de erros consistente
+ * @param {string} endpoint - Endpoint da API
+ * @param {string} method - Método HTTP
+ * @param {Object} queryParams - Parâmetros de consulta
+ * @param {Object} body - Corpo da requisição
+ * @returns {Promise<Object>} Resposta da API
+ */
 async function facebookApiRequest(endpoint, method = 'GET', queryParams = {}, body = null) {
   try {
     // Verificar se as credenciais estão configuradas
@@ -241,6 +288,10 @@ async function facebookApiRequest(endpoint, method = 'GET', queryParams = {}, bo
     };
 
     console.error(`Fazendo requisição ${method} para ${url}`);
+    console.error(`Parâmetros: ${JSON.stringify(params)}`);
+    if (body) {
+      console.error(`Corpo: ${JSON.stringify(body)}`);
+    }
 
     // Fazer requisição à API do Facebook
     const response = await axios({
@@ -273,207 +324,273 @@ async function facebookApiRequest(endpoint, method = 'GET', queryParams = {}, bo
 const toolHandlers = {
   // Lista todas as contas de anúncios disponíveis
   "facebook-list-ad-accounts": async (args) => {
-    // Validar parâmetros de entrada
-    schemas.toolInputs.facebookListAdAccounts.parse(args);
+    try {
+      // Validar parâmetros de entrada
+      schemas.toolInputs.facebookListAdAccounts.parse(args);
 
-    console.error('Listando Contas de Anúncios do Facebook');
+      console.error('Listando Contas de Anúncios do Facebook');
 
-    // Fazer requisição à API do Facebook
-    const response = await facebookApiRequest('me/adaccounts', 'GET', {
-      fields: 'id,name,account_id,account_status'
-    });
+      // Fazer requisição à API do Facebook
+      const response = await facebookApiRequest('me/adaccounts', 'GET', {
+        fields: 'id,name,account_id,account_status'
+      });
 
-    // Formatar resposta
-    return {
-      content: [{
-        type: "text",
-        text: `Contas de anúncios encontradas: ${JSON.stringify(response.data, null, 2)}`
-      }]
-    };
+      // Verificar se houve erro na resposta
+      if (response.error) {
+        return formatMcpResponse(`Erro ao listar contas de anúncios: ${JSON.stringify(response.error)}`, true);
+      }
+
+      // Formatar resposta
+      return formatMcpResponse(`Contas de anúncios encontradas: ${JSON.stringify(response.data, null, 2)}`);
+    } catch (error) {
+      return handleError(error, 'facebook-list-ad-accounts');
+    }
   },
 
   // Obtém informações detalhadas sobre uma conta específica
   "facebook-account-info": async (args) => {
-    // Validar parâmetros de entrada
-    const parsed = schemas.toolInputs.facebookAccountInfo.parse(args);
+    try {
+      // Validar parâmetros de entrada
+      const parsed = schemas.toolInputs.facebookAccountInfo.parse(args);
 
-    console.error(`Obtendo informações da conta: ${parsed.accountId}`);
+      console.error(`Obtendo informações da conta: ${parsed.accountId}`);
 
-    // Fazer requisição à API do Facebook
-    const response = await facebookApiRequest(`${parsed.accountId}`, 'GET', {
-      fields: 'id,name,account_id,account_status,age,amount_spent,balance,business,business_city,business_country_code,business_name,business_state,business_street,business_street2,business_zip,capabilities,created_time,currency,disable_reason,end_advertiser,end_advertiser_name,existing_customers,fb_entity,funding_source,funding_source_details,has_migrated_permissions,io_number,is_attribution_spec_system_default,is_direct_deals_enabled,is_in_3ds_authorization_enabled_market,is_notifications_enabled,is_personal,is_prepay_account,is_tax_id_required,line_numbers,media_agency,min_campaign_group_spend_cap,min_daily_budget,owner,partner,tax_id,tax_id_status,tax_id_type,timezone_id,timezone_name,timezone_offset_hours_utc,rf_spec,user_tasks,user_tos_accepted'
-    });
+      // Fazer requisição à API do Facebook
+      const response = await facebookApiRequest(`${parsed.accountId}`, 'GET', {
+        fields: 'id,name,account_id,account_status,currency,timezone_name,business_name,business_id,owner'
+      });
 
-    // Formatar resposta
-    return {
-      content: [{
-        type: "text",
-        text: `Informações da conta ${parsed.accountId}: ${JSON.stringify(response.data, null, 2)}`
-      }]
-    };
+      // Verificar se houve erro na resposta
+      if (response.error) {
+        return formatMcpResponse(`Erro ao obter informações da conta: ${JSON.stringify(response.error)}`, true);
+      }
+
+      // Formatar resposta
+      return formatMcpResponse(`Informações da conta ${parsed.accountId}: ${JSON.stringify(response.data, null, 2)}`);
+    } catch (error) {
+      return handleError(error, 'facebook-account-info');
+    }
   },
 
   // Recupera dados de insights para uma conta específica
   "facebook-insights-get": async (args) => {
-    // Validar parâmetros de entrada
-    const parsed = schemas.toolInputs.facebookInsightsGet.parse(args);
+    try {
+      // Validar parâmetros de entrada
+      const parsed = schemas.toolInputs.facebookInsightsGet.parse(args);
 
-    console.error(`Obtendo insights para a conta: ${parsed.accountId}`);
+      console.error(`Obtendo insights para a conta: ${parsed.accountId}`);
+      console.error(`Métricas: ${parsed.metrics.join(', ')}`);
 
-    // Preparar parâmetros de consulta
-    const queryParams = {
-      fields: parsed.metrics.join(','),
-      level: 'account'
-    };
+      // Construir parâmetros de consulta
+      const queryParams = {
+        fields: parsed.metrics.join(','),
+        time_range: parsed.date_preset ? undefined : '{"since":"2023-01-01","until":"2023-12-31"}',
+        date_preset: parsed.date_preset,
+        time_increment: parsed.time_increment
+      };
 
-    // Adicionar parâmetros opcionais se fornecidos
-    if (parsed.date_preset) {
-      queryParams.date_preset = parsed.date_preset;
+      // Remover parâmetros undefined
+      Object.keys(queryParams).forEach(key => {
+        if (queryParams[key] === undefined) {
+          delete queryParams[key];
+        }
+      });
+
+      // Fazer requisição à API do Facebook
+      const response = await facebookApiRequest(`${parsed.accountId}/insights`, 'GET', queryParams);
+
+      // Verificar se houve erro na resposta
+      if (response.error) {
+        return formatMcpResponse(`Erro ao obter insights: ${JSON.stringify(response.error)}`, true);
+      }
+
+      // Formatar resposta
+      return formatMcpResponse(`Insights para a conta ${parsed.accountId}: ${JSON.stringify(response.data, null, 2)}`);
+    } catch (error) {
+      return handleError(error, 'facebook-insights-get');
     }
-
-    if (parsed.time_increment) {
-      queryParams.time_increment = parsed.time_increment;
-    }
-
-    // Fazer requisição à API do Facebook
-    const response = await facebookApiRequest(`${parsed.accountId}/insights`, 'GET', queryParams);
-
-    // Formatar resposta
-    return {
-      content: [{
-        type: "text",
-        text: `Insights para a conta ${parsed.accountId}: ${JSON.stringify(response.data, null, 2)}`
-      }]
-    };
   },
 
   // Obtém campanhas para uma conta específica
   "facebook-campaigns": async (args) => {
-    // Validar parâmetros de entrada
-    const parsed = schemas.toolInputs.facebookCampaigns.parse(args);
+    try {
+      // Validar parâmetros de entrada
+      const parsed = schemas.toolInputs.facebookCampaigns.parse(args);
 
-    console.error(`Obtendo campanhas para a conta: ${parsed.accountId}`);
+      console.error(`Obtendo campanhas para a conta: ${parsed.accountId}`);
+      if (parsed.status) {
+        console.error(`Filtrando por status: ${parsed.status}`);
+      }
 
-    // Preparar parâmetros de consulta
-    const queryParams = {
-      fields: 'id,name,status,objective,buying_type,special_ad_categories,start_time,stop_time,daily_budget,lifetime_budget,budget_remaining,insights{impressions,clicks,spend}'
-    };
+      // Construir parâmetros de consulta
+      const queryParams = {
+        fields: 'id,name,status,objective,created_time,start_time,stop_time,daily_budget,lifetime_budget',
+        limit: 100
+      };
 
-    // Adicionar filtro de status se fornecido
-    if (parsed.status && parsed.status !== 'ALL') {
-      queryParams.effective_status = [parsed.status];
+      // Adicionar filtro de status se fornecido
+      if (parsed.status && parsed.status !== 'ALL') {
+        queryParams.filtering = JSON.stringify([{
+          field: 'status',
+          operator: 'EQUAL',
+          value: parsed.status
+        }]);
+      }
+
+      // Fazer requisição à API do Facebook
+      const response = await facebookApiRequest(`${parsed.accountId}/campaigns`, 'GET', queryParams);
+
+      // Verificar se houve erro na resposta
+      if (response.error) {
+        return formatMcpResponse(`Erro ao obter campanhas: ${JSON.stringify(response.error)}`, true);
+      }
+
+      // Formatar resposta
+      return formatMcpResponse(`Campanhas para a conta ${parsed.accountId}: ${JSON.stringify(response.data, null, 2)}`);
+    } catch (error) {
+      return handleError(error, 'facebook-campaigns');
     }
-
-    // Fazer requisição à API do Facebook
-    const response = await facebookApiRequest(`${parsed.accountId}/campaigns`, 'GET', queryParams);
-
-    // Formatar resposta
-    return {
-      content: [{
-        type: "text",
-        text: `Campanhas para a conta ${parsed.accountId}: ${JSON.stringify(response.data, null, 2)}`
-      }]
-    };
   },
 
   // Obtém conjuntos de anúncios para uma campanha ou conta
   "facebook-adsets": async (args) => {
-    // Validar parâmetros de entrada
-    const parsed = schemas.toolInputs.facebookAdsets.parse(args);
+    try {
+      // Validar parâmetros de entrada
+      const parsed = schemas.toolInputs.facebookAdsets.parse(args);
 
-    console.error(`Obtendo conjuntos de anúncios para a conta: ${parsed.accountId}`);
+      console.error(`Obtendo conjuntos de anúncios para a conta: ${parsed.accountId}`);
+      if (parsed.campaignId) {
+        console.error(`Filtrando por campanha: ${parsed.campaignId}`);
+      }
+      if (parsed.status) {
+        console.error(`Filtrando por status: ${parsed.status}`);
+      }
 
-    // Determinar o endpoint com base nos parâmetros
-    let endpoint = `${parsed.accountId}/adsets`;
-    if (parsed.campaignId) {
-      endpoint = `${parsed.campaignId}/adsets`;
-      console.error(`Filtrando por campanha: ${parsed.campaignId}`);
+      // Determinar o endpoint com base nos parâmetros
+      let endpoint = parsed.campaignId ? 
+        `${parsed.campaignId}/adsets` : 
+        `${parsed.accountId}/adsets`;
+
+      // Construir parâmetros de consulta
+      const queryParams = {
+        fields: 'id,name,status,campaign_id,daily_budget,lifetime_budget,targeting,optimization_goal',
+        limit: 100
+      };
+
+      // Adicionar filtro de status se fornecido
+      if (parsed.status && parsed.status !== 'ALL') {
+        queryParams.filtering = JSON.stringify([{
+          field: 'status',
+          operator: 'EQUAL',
+          value: parsed.status
+        }]);
+      }
+
+      // Fazer requisição à API do Facebook
+      const response = await facebookApiRequest(endpoint, 'GET', queryParams);
+
+      // Verificar se houve erro na resposta
+      if (response.error) {
+        return formatMcpResponse(`Erro ao obter conjuntos de anúncios: ${JSON.stringify(response.error)}`, true);
+      }
+
+      // Formatar resposta
+      const contextInfo = parsed.campaignId ? 
+        `campanha ${parsed.campaignId}` : 
+        `conta ${parsed.accountId}`;
+      
+      return formatMcpResponse(`Conjuntos de anúncios para a ${contextInfo}: ${JSON.stringify(response.data, null, 2)}`);
+    } catch (error) {
+      return handleError(error, 'facebook-adsets');
     }
-
-    // Preparar parâmetros de consulta
-    const queryParams = {
-      fields: 'id,name,status,campaign_id,daily_budget,lifetime_budget,budget_remaining,targeting,bid_amount,billing_event,optimization_goal,attribution_spec'
-    };
-
-    // Adicionar filtro de status se fornecido
-    if (parsed.status && parsed.status !== 'ALL') {
-      queryParams.effective_status = [parsed.status];
-    }
-
-    // Fazer requisição à API do Facebook
-    const response = await facebookApiRequest(endpoint, 'GET', queryParams);
-
-    // Formatar resposta
-    return {
-      content: [{
-        type: "text",
-        text: `Conjuntos de anúncios para a conta ${parsed.accountId}: ${JSON.stringify(response.data, null, 2)}`
-      }]
-    };
   },
 
   // Obtém anúncios para um conjunto de anúncios ou conta
   "facebook-ads": async (args) => {
-    // Validar parâmetros de entrada
-    const parsed = schemas.toolInputs.facebookAds.parse(args);
+    try {
+      // Validar parâmetros de entrada
+      const parsed = schemas.toolInputs.facebookAds.parse(args);
 
-    console.error(`Obtendo anúncios para a conta: ${parsed.accountId}`);
+      console.error(`Obtendo anúncios para a conta: ${parsed.accountId}`);
+      if (parsed.adsetId) {
+        console.error(`Filtrando por conjunto de anúncios: ${parsed.adsetId}`);
+      }
+      if (parsed.status) {
+        console.error(`Filtrando por status: ${parsed.status}`);
+      }
 
-    // Determinar o endpoint com base nos parâmetros
-    let endpoint = `${parsed.accountId}/ads`;
-    if (parsed.adsetId) {
-      endpoint = `${parsed.adsetId}/ads`;
-      console.error(`Filtrando por conjunto de anúncios: ${parsed.adsetId}`);
+      // Determinar o endpoint com base nos parâmetros
+      let endpoint = parsed.adsetId ? 
+        `${parsed.adsetId}/ads` : 
+        `${parsed.accountId}/ads`;
+
+      // Construir parâmetros de consulta
+      const queryParams = {
+        fields: 'id,name,status,adset_id,creative{id,name,body,title,image_url}',
+        limit: 100
+      };
+
+      // Adicionar filtro de status se fornecido
+      if (parsed.status && parsed.status !== 'ALL') {
+        queryParams.filtering = JSON.stringify([{
+          field: 'status',
+          operator: 'EQUAL',
+          value: parsed.status
+        }]);
+      }
+
+      // Fazer requisição à API do Facebook
+      const response = await facebookApiRequest(endpoint, 'GET', queryParams);
+
+      // Verificar se houve erro na resposta
+      if (response.error) {
+        return formatMcpResponse(`Erro ao obter anúncios: ${JSON.stringify(response.error)}`, true);
+      }
+
+      // Formatar resposta
+      const contextInfo = parsed.adsetId ? 
+        `conjunto de anúncios ${parsed.adsetId}` : 
+        `conta ${parsed.accountId}`;
+      
+      return formatMcpResponse(`Anúncios para o ${contextInfo}: ${JSON.stringify(response.data, null, 2)}`);
+    } catch (error) {
+      return handleError(error, 'facebook-ads');
     }
-
-    // Preparar parâmetros de consulta
-    const queryParams = {
-      fields: 'id,name,status,adset_id,creative,tracking_specs,bid_amount'
-    };
-
-    // Adicionar filtro de status se fornecido
-    if (parsed.status && parsed.status !== 'ALL') {
-      queryParams.effective_status = [parsed.status];
-    }
-
-    // Fazer requisição à API do Facebook
-    const response = await facebookApiRequest(endpoint, 'GET', queryParams);
-
-    // Formatar resposta
-    return {
-      content: [{
-        type: "text",
-        text: `Anúncios para a conta ${parsed.accountId}: ${JSON.stringify(response.data, null, 2)}`
-      }]
-    };
   },
 
   // Handler genérico para fazer chamadas personalizadas à API do Facebook
   "facebook-insights": async (args) => {
-    // Validar parâmetros de entrada
-    const parsed = schemas.toolInputs.facebookInsights.parse(args);
+    try {
+      // Validar parâmetros de entrada
+      const parsed = schemas.toolInputs.facebookInsights.parse(args);
 
-    console.error(`Recebida solicitação para Facebook Insights: ${JSON.stringify({
-      endpoint: parsed.endpoint,
-      method: parsed.method,
-      queryParams: parsed.queryParams
-    })}`);
+      console.error(`Fazendo chamada personalizada para: ${parsed.endpoint}`);
+      console.error(`Método: ${parsed.method || 'GET'}`);
+      if (parsed.queryParams) {
+        console.error(`Parâmetros: ${JSON.stringify(parsed.queryParams)}`);
+      }
+      if (parsed.body) {
+        console.error(`Corpo: ${JSON.stringify(parsed.body)}`);
+      }
 
-    // Fazer requisição à API do Facebook
-    const response = await facebookApiRequest(
-      parsed.endpoint,
-      parsed.method,
-      parsed.queryParams || {},
-      parsed.body || null
-    );
+      // Fazer requisição à API do Facebook
+      const response = await facebookApiRequest(
+        parsed.endpoint,
+        parsed.method || 'GET',
+        parsed.queryParams || {},
+        parsed.body
+      );
 
-    // Formatar resposta
-    return {
-      content: [{
-        type: "text",
-        text: `Resultado da API do Facebook: ${JSON.stringify(response.data, null, 2)}`
-      }]
-    };
+      // Verificar se houve erro na resposta
+      if (response.error) {
+        return formatMcpResponse(`Erro na chamada personalizada: ${JSON.stringify(response.error)}`, true);
+      }
+
+      // Formatar resposta
+      return formatMcpResponse(`Resultado da chamada para ${parsed.endpoint}: ${JSON.stringify(response.data, null, 2)}`);
+    } catch (error) {
+      return handleError(error, 'facebook-insights');
+    }
   }
 };
 
@@ -489,12 +606,10 @@ const server = new Server({
 
 // Configurar handler para listar ferramentas
 server.setRequestHandler(ListToolsRequestSchema, async () => {
-  console.error("Ferramenta requesitada pelo cliente");
+  console.error("Requisição de listagem de ferramentas recebida");
   // Retornar exatamente no formato esperado pelo MCP
   return { tools: TOOL_DEFINITIONS };
 });
-
-
 
 // Configurar handler para executar ferramentas
 server.setRequestHandler(CallToolRequestSchema, async (request) => {
@@ -507,89 +622,76 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
     const handler = toolHandlers[name];
     if (!handler) {
       console.error(`Ferramenta não encontrada: ${name}`);
-      return {
-        isError: true,
-        content: [
-          {
-            type: "text",
-            text: `Erro: Ferramenta '${name}' não encontrada`
-          }
-        ]
-      };
+      return formatMcpResponse(`Erro: Ferramenta '${name}' não encontrada`, true);
     }
 
     // Executar a ferramenta e retornar o resultado
     const result = await handler(args || {});
     console.error(`Resultado: ${JSON.stringify(result)}`);
+    
+    // Garantir que o resultado esteja no formato correto
+    if (!result.content || !Array.isArray(result.content)) {
+      console.error("Resultado em formato incorreto, corrigindo...");
+      return formatMcpResponse(JSON.stringify(result));
+    }
+    
     return result;
   } catch (error) {
-    console.error(`Erro ao executar ferramenta ${name}:`, error);
-    // Retornar erro no formato esperado pelo MCP
-    return {
-      isError: true,
-      content: [
-        {
-          type: "text",
-          text: `Erro: ${error.message}`
-        }
-      ]
-    };
+    return handleError(error, `execução da ferramenta ${name}`);
   }
 });
 
+// Função para processar mensagens no formato n8n
+function processN8nMessage(message) {
+  // Verificar se é uma requisição no formato n8n
+  if (message.type === 'listTools') {
+    console.error('Recebida requisição listTools no formato n8n');
+    // Retornar apenas o array de ferramentas sem o wrapper
+    console.log(JSON.stringify(TOOL_DEFINITIONS));
+    return;
+  }
+  
+  if (message.type === 'callTool' && message.name) {
+    console.error(`Recebida requisição callTool no formato n8n para: ${message.name}`);
 
-
-// Adicionar handler para processar mensagens no formato n8n
-process.stdin.on('data', async (data) => {
-  try {
-    const message = JSON.parse(data.toString());
-    console.error(`Recebida mensagem: ${JSON.stringify(message)}`);
-
-    // Verificar se é uma requisição no formato n8n
-    if (message.type === 'listTools') {
-      console.error('Recebida requisição listTools no formato n8n');
-      // Retornar apenas o array de ferramentas sem o wrapper
-      console.log(JSON.stringify(TOOL_DEFINITIONS));
+    // Verificar se a ferramenta existe
+    const handler = toolHandlers[message.name];
+    if (!handler) {
+      console.error(`Ferramenta desconhecida: ${message.name}`);
+      const errorResult = formatMcpResponse(`Erro: Ferramenta '${message.name}' não encontrada`, true);
+      console.log(JSON.stringify([errorResult]));
+      return;
     }
-    else if (message.type === 'callTool' && message.name) {
-      console.error(`Recebida requisição callTool no formato n8n para: ${message.name}`);
 
-      try {
-        // Verificar se a ferramenta existe
-        const handler = toolHandlers[message.name];
-        if (!handler) {
-          console.error(`Ferramenta desconhecida: ${message.name}`);
-          const errorResult = {
-            isError: true,
-            content: [{
-              type: "text",
-              text: `Erro: Ferramenta '${message.name}' não encontrada`
-            }]
-          };
-          console.log(JSON.stringify([errorResult]));
-          return;
-        }
-
-        // Executar a ferramenta
-        const result = await handler(message.arguments || {});
+    // Executar a ferramenta
+    handler(message.arguments || {})
+      .then(result => {
         console.error(`Resultado: ${JSON.stringify(result)}`);
 
         // Formatar a resposta para o n8n
         // O n8n espera um array de ferramentas, então envolvemos o resultado em um array
         const formattedResult = [result];
         console.log(JSON.stringify(formattedResult));
-      } catch (error) {
+      })
+      .catch(error => {
         console.error(`Erro ao executar ferramenta ${message.name}:`, error);
-        const errorResult = {
-          isError: true,
-          content: [{
-            type: "text",
-            text: `Erro: ${error.message}`
-          }]
-        };
+        const errorResult = formatMcpResponse(`Erro: ${error.message}`, true);
         console.log(JSON.stringify([errorResult]));
-      }
-    }
+      });
+    return;
+  }
+  
+  console.error(`Mensagem desconhecida: ${JSON.stringify(message)}`);
+}
+
+// Adicionar handler para processar mensagens no formato n8n
+process.stdin.on('data', async (data) => {
+  try {
+    const message = JSON.parse(data.toString());
+    console.error(`Recebida mensagem: ${JSON.stringify(message)}`);
+    
+    // Processar a mensagem no formato n8n
+    processN8nMessage(message);
   } catch (error) {
     console.error(`Erro ao processar mensagem: ${error.message}`);
   }
