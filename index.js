@@ -490,23 +490,8 @@ const server = new Server({
 // Configurar handler para listar ferramentas
 server.setRequestHandler(ListToolsRequestSchema, async () => {
   console.error("Ferramenta requesitada pelo cliente");
+  // Retornar exatamente no formato esperado pelo MCP
   return { tools: TOOL_DEFINITIONS };
-});
-
-// Adicionar handler para o método listTools (compatível com JSON-RPC 2.0)
-const ListToolsJSONRPCSchema = z.object({
-  jsonrpc: z.literal('2.0'),
-  id: z.any(),
-  method: z.literal('listTools')
-});
-
-server.setRequestHandler(ListToolsJSONRPCSchema, async (request) => {
-  console.error("Recebida requisição JSON-RPC para listTools");
-  return {
-    jsonrpc: '2.0',
-    id: request.id,
-    result: { tools: TOOL_DEFINITIONS }
-  };
 });
 
 
@@ -514,49 +499,40 @@ server.setRequestHandler(ListToolsJSONRPCSchema, async (request) => {
 // Configurar handler para executar ferramentas
 server.setRequestHandler(CallToolRequestSchema, async (request) => {
   const { name, arguments: args } = request.params;
-  try {
-    const handler = toolHandlers[name];
-    if (!handler) throw new Error(`Ferramenta desconhecida: ${name}`);
-    return await handler(args || {});
-  } catch (error) {
-    console.error(`Erro ao executar ferramenta ${name}:`, error);
-    throw error;
-  }
-});
-
-// Adicionar handler para o método executeTool (compatível com JSON-RPC 2.0)
-const ExecuteToolJSONRPCSchema = z.object({
-  jsonrpc: z.literal('2.0'),
-  id: z.any(),
-  method: z.literal('executeTool'),
-  params: z.object({
-    name: z.string(),
-    arguments: z.record(z.any()).optional()
-  })
-});
-
-server.setRequestHandler(ExecuteToolJSONRPCSchema, async (request) => {
-  const { name, arguments: args } = request.params;
-  console.error(`Executando ferramenta via JSON-RPC: ${name}`);
+  console.error(`Executando ferramenta: ${name}`);
+  console.error(`Argumentos: ${JSON.stringify(args)}`);
 
   try {
+    // Verificar se a ferramenta existe
     const handler = toolHandlers[name];
-    if (!handler) throw new Error(`Ferramenta desconhecida: ${name}`);
+    if (!handler) {
+      console.error(`Ferramenta não encontrada: ${name}`);
+      return {
+        isError: true,
+        content: [
+          {
+            type: "text",
+            text: `Erro: Ferramenta '${name}' não encontrada`
+          }
+        ]
+      };
+    }
+
+    // Executar a ferramenta e retornar o resultado
     const result = await handler(args || {});
-    return {
-      jsonrpc: '2.0',
-      id: request.id,
-      result
-    };
+    console.error(`Resultado: ${JSON.stringify(result)}`);
+    return result;
   } catch (error) {
     console.error(`Erro ao executar ferramenta ${name}:`, error);
+    // Retornar erro no formato esperado pelo MCP
     return {
-      jsonrpc: '2.0',
-      id: request.id,
-      error: {
-        code: -32603,
-        message: error.message
-      }
+      isError: true,
+      content: [
+        {
+          type: "text",
+          text: `Erro: ${error.message}`
+        }
+      ]
     };
   }
 });
@@ -567,11 +543,13 @@ server.setRequestHandler(ExecuteToolJSONRPCSchema, async (request) => {
 process.stdin.on('data', async (data) => {
   try {
     const message = JSON.parse(data.toString());
+    console.error(`Recebida mensagem: ${JSON.stringify(message)}`);
 
     // Verificar se é uma requisição no formato n8n
     if (message.type === 'listTools') {
       console.error('Recebida requisição listTools no formato n8n');
-      console.log(JSON.stringify({ tools: TOOL_DEFINITIONS }));
+      // Retornar apenas o array de ferramentas sem o wrapper
+      console.log(JSON.stringify(TOOL_DEFINITIONS));
     }
     else if (message.type === 'callTool' && message.name) {
       console.error(`Recebida requisição callTool no formato n8n para: ${message.name}`);
@@ -581,6 +559,14 @@ process.stdin.on('data', async (data) => {
         const handler = toolHandlers[message.name];
         if (!handler) {
           console.error(`Ferramenta desconhecida: ${message.name}`);
+          const errorResult = {
+            isError: true,
+            content: [{
+              type: "text",
+              text: `Erro: Ferramenta '${message.name}' não encontrada`
+            }]
+          };
+          console.log(JSON.stringify([errorResult]));
           return;
         }
 
@@ -594,10 +580,18 @@ process.stdin.on('data', async (data) => {
         console.log(JSON.stringify(formattedResult));
       } catch (error) {
         console.error(`Erro ao executar ferramenta ${message.name}:`, error);
+        const errorResult = {
+          isError: true,
+          content: [{
+            type: "text",
+            text: `Erro: ${error.message}`
+          }]
+        };
+        console.log(JSON.stringify([errorResult]));
       }
     }
   } catch (error) {
-    // Ignorar erros de parsing JSON
+    console.error(`Erro ao processar mensagem: ${error.message}`);
   }
 });
 
