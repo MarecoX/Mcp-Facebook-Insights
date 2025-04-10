@@ -37,6 +37,27 @@ Este servidor implementa o protocolo MCP (Model Context Protocol) para permitir 
 
 ### Instalação no n8n
 
+#### Opção 1: Auto-Instalador (Recomendado)
+
+Use nosso script de auto-instalação que configura tudo automaticamente:
+
+1. Acesse o shell do contêiner n8n:
+   ```bash
+   # Se estiver usando docker diretamente
+   docker exec -it seu_container_n8n bash
+   ```
+
+2. Execute o script de auto-instalação:
+   ```bash
+   curl -s https://raw.githubusercontent.com/MarecoX/mcp-facebook-insights/main/auto-install.sh | bash
+   ```
+
+3. Siga as instruções na tela para configurar suas credenciais do Facebook.
+
+4. Configure o nó "Execute Command" no n8n conforme as instruções exibidas pelo instalador.
+
+#### Opção 2: Instalação Manual
+
 1. Copie os arquivos `index.js` e `package.json` para o diretório `/tmp/mcp_facebook/` no seu servidor n8n:
    ```bash
    mkdir -p /tmp/mcp_facebook
