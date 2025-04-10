@@ -489,21 +489,8 @@ const server = new Server({
 
 // Configurar handler para listar ferramentas
 server.setRequestHandler(ListToolsRequestSchema, async () => {
-  console.error("Ferramenta requisitada pelo cliente (ListToolsRequestSchema)");
+  console.error("Ferramenta requesitada pelo cliente");
   return { tools: TOOL_DEFINITIONS };
-});
-
-// Adicionar handler para o método listTools (compatível com n8n)
-server.addRawRequestHandler(async (request) => {
-  if (request.jsonrpc === '2.0' && request.method === 'listTools') {
-    console.error("Ferramenta requisitada pelo cliente (listTools JSON-RPC)");
-    return {
-      jsonrpc: '2.0',
-      id: request.id,
-      result: { tools: TOOL_DEFINITIONS }
-    };
-  }
-  return null;
 });
 
 // Configurar handler para executar ferramentas
