@@ -493,16 +493,7 @@ server.setRequestHandler(ListToolsRequestSchema, async () => {
   return { tools: TOOL_DEFINITIONS };
 });
 
-// Adicionar handler para o método listTools (compatível com n8n)
-server.setRequestHandler({
-  jsonrpc: z.literal('2.0'),
-  id: z.any(),
-  method: z.literal('listTools'),
-  params: z.object({}).optional()
-}, async () => {
-  console.error("Listando ferramentas disponíveis (método listTools)");
-  return { tools: TOOL_DEFINITIONS };
-});
+// Nota: O suporte ao método listTools para n8n será implementado em uma versão futura
 
 // Configurar handler para executar ferramentas
 server.setRequestHandler(CallToolRequestSchema, async (request) => {
