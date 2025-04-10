@@ -32,6 +32,19 @@ cd /tmp || {
     exit 1
 }
 
+# Verificar se o diretório mcp_facebook já existe
+if [ -d "mcp_facebook" ]; then
+    echo -e "${amarelo}O diretório /tmp/mcp_facebook já existe.${reset}"
+    read -p "${amarelo}Deseja sobrescrever? (s/n): ${reset}" sobrescrever
+    if [[ "$sobrescrever" == "s" || "$sobrescrever" == "S" ]]; then
+        echo -e "${azul}Removendo diretório existente...${reset}"
+        rm -rf mcp_facebook
+    else
+        echo -e "${vermelho}Instalação cancelada pelo usuário.${reset}"
+        exit 1
+    fi
+fi
+
 # Criar diretório mcp_facebook
 mkdir -p mcp_facebook
 cd mcp_facebook || {
