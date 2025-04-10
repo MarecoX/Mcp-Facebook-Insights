@@ -583,32 +583,33 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
   }
 });
 
-// Adicionar handler para o formato n8n
-const N8nCallToolSchema = z.object({
-  type: z.literal('callTool'),
-  name: z.string(),
-  arguments: z.record(z.any()).optional()
-});
-
-server.setRequestHandler(N8nCallToolSchema, async (request) => {
-  const { name, arguments: args } = request;
-  console.error(`Executando ferramenta via n8n: ${name}`);
-  console.error(`Argumentos: ${JSON.stringify(args)}`);
-
+// Adicionar handler para processar mensagens brutas
+process.stdin.on('data', async (data) => {
   try {
-    // Verificar se a ferramenta existe
-    const handler = toolHandlers[name];
-    if (!handler) {
-      throw new Error(`Ferramenta desconhecida: ${name}`);
-    }
+    const message = JSON.parse(data.toString());
 
-    // Executar a ferramenta
-    const result = await handler(args || {});
-    console.error(`Resultado: ${JSON.stringify(result)}`);
-    return result;
+    // Verificar se é uma requisição no formato n8n
+    if (message.type === 'callTool' && message.name) {
+      console.error(`Recebida requisição callTool no formato n8n para: ${message.name}`);
+
+      try {
+        // Verificar se a ferramenta existe
+        const handler = toolHandlers[message.name];
+        if (!handler) {
+          console.error(`Ferramenta desconhecida: ${message.name}`);
+          return;
+        }
+
+        // Executar a ferramenta
+        const result = await handler(message.arguments || {});
+        console.error(`Resultado: ${JSON.stringify(result)}`);
+        console.log(JSON.stringify(result));
+      } catch (error) {
+        console.error(`Erro ao executar ferramenta ${message.name}:`, error);
+      }
+    }
   } catch (error) {
-    console.error(`Erro ao executar ferramenta ${name}:`, error);
-    throw error;
+    // Ignorar erros de parsing JSON
   }
 });
 
