@@ -509,6 +509,57 @@ server.setRequestHandler(ListToolsJSONRPCSchema, async (request) => {
   };
 });
 
+// Adicionar handler para o método executeTool (compatível com JSON-RPC 2.0)
+const ExecuteToolJSONRPCSchema = z.object({
+  jsonrpc: z.literal('2.0'),
+  id: z.any(),
+  method: z.literal('executeTool'),
+  params: z.object({
+    name: z.string(),
+    arguments: z.record(z.any()).optional()
+  })
+});
+
+server.setRequestHandler(ExecuteToolJSONRPCSchema, async (request) => {
+  console.error(`Recebida requisição JSON-RPC para executeTool: ${request.params.name}`);
+  try {
+    const { name, arguments: args } = request.params;
+
+    // Verificar se a ferramenta existe
+    const handler = toolHandlers[name];
+    if (!handler) {
+      return {
+        jsonrpc: '2.0',
+        id: request.id,
+        error: {
+          code: -32602,
+          message: `Ferramenta não encontrada: ${name}`
+        }
+      };
+    }
+
+    // Executar a ferramenta
+    const result = await handler(args || {});
+
+    // Retornar o resultado
+    return {
+      jsonrpc: '2.0',
+      id: request.id,
+      result: result
+    };
+  } catch (error) {
+    console.error(`Erro ao executar ferramenta: ${error.message}`);
+    return {
+      jsonrpc: '2.0',
+      id: request.id,
+      error: {
+        code: -32603,
+        message: error.message
+      }
+    };
+  }
+});
+
 // Configurar handler para executar ferramentas
 server.setRequestHandler(CallToolRequestSchema, async (request) => {
   const { name, arguments: args } = request.params;
