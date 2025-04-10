@@ -38,15 +38,15 @@ if [ ! -d "/tmp" ]; then
   exit 1
 fi
 
-# Verificar se o diretório /tmp/mcp_facebook já existe
-if [ -d "/tmp/mcp_facebook" ]; then
-  print_warning "O diretório /tmp/mcp_facebook já existe. Removendo..."
-  rm -rf /tmp/mcp_facebook
+# Verificar se o diretório /opt/mcp_facebook já existe
+if [ -d "/opt/mcp_facebook" ]; then
+  print_warning "O diretório /opt/mcp_facebook já existe. Removendo..."
+  rm -rf /opt/mcp_facebook
 fi
 
 # Criar diretório para o MCP Facebook Insights
 print_message "Criando diretório para o MCP Facebook Insights..."
-mkdir -p /tmp/mcp_facebook
+mkdir -p /opt/mcp_facebook
 
 # Verificar se o git está instalado
 if ! command -v git &> /dev/null; then
@@ -74,7 +74,7 @@ if ! command -v git &> /dev/null; then
   unzip -q /tmp/mcp_facebook_main.zip -d /tmp
 
   # Mover arquivos para o diretório correto
-  cp -r /tmp/mcp-facebook-insights-main/* /tmp/mcp_facebook/
+  cp -r /tmp/mcp-facebook-insights-main/* /opt/mcp_facebook/
 
   # Limpar arquivos temporários
   rm -rf /tmp/mcp_facebook_main.zip /tmp/mcp-facebook-insights-main
@@ -84,7 +84,7 @@ else
   git clone https://github.com/MarecoX/mcp-facebook-insights.git /tmp/mcp_facebook_temp
 
   # Mover arquivos para o diretório correto
-  cp -r /tmp/mcp_facebook_temp/* /tmp/mcp_facebook/
+  cp -r /tmp/mcp_facebook_temp/* /opt/mcp_facebook/
 
   # Limpar diretório temporário
   rm -rf /tmp/mcp_facebook_temp
@@ -99,7 +99,7 @@ fi
 
 # Instalar dependências
 print_message "Instalando dependências..."
-cd /tmp/mcp_facebook
+cd /opt/mcp_facebook
 npm install
 
 # Informações sobre configuração
@@ -114,7 +114,7 @@ PORT=8082
 
 # Criar arquivo .env vazio apenas como referência
 print_message "Criando arquivo .env de exemplo..."
-cat > /tmp/mcp_facebook/.env.example << EOL
+cat > /opt/mcp_facebook/.env.example << EOL
 # Exemplo de configuração - NÃO PREENCHA ESTE ARQUIVO
 # Configure estas variáveis no nó 'Execute Command' do n8n
 FB_APP_ID=seu_app_id
@@ -125,16 +125,16 @@ EOL
 
 # Criar script de inicialização
 print_message "Criando script de inicialização..."
-cat > /tmp/mcp_facebook/start.sh << EOL
+cat > /opt/mcp_facebook/start.sh << EOL
 #!/bin/bash
 
 # Iniciar servidor MCP
-cd /tmp/mcp_facebook
+cd /opt/mcp_facebook
 node index.js
 EOL
 
 # Tornar script executável
-chmod +x /tmp/mcp_facebook/start.sh
+chmod +x /opt/mcp_facebook/start.sh
 
 # Instruções para configurar o n8n
 print_success "Instalação concluída com sucesso!"
@@ -142,7 +142,7 @@ echo ""
 print_message "Para iniciar o servidor MCP, configure um nó 'Execute Command' no n8n com:"
 echo ""
 echo "Command: node"
-echo "Arguments: /tmp/mcp_facebook/index.js"
+echo "Arguments: /opt/mcp_facebook/index.js"
 echo "Environment Variables:"
 echo "FB_APP_ID=seu_app_id"
 echo "FB_APP_SECRET=seu_app_secret"
@@ -162,9 +162,9 @@ read -p "Deseja testar o servidor MCP agora? (s/n): " START_SERVER
 if [[ $START_SERVER == "s" || $START_SERVER == "S" ]]; then
   print_message "Iniciando servidor MCP para teste (pressione Ctrl+C para parar)..."
   print_warning "Lembre-se: Este é apenas um teste. Para uso real, configure o servidor no n8n."
-  cd /tmp/mcp_facebook
+  cd /opt/mcp_facebook
   node index.js
 else
   print_message "Você pode testar o servidor manualmente executando:"
-  echo "cd /tmp/mcp_facebook && node index.js"
+  echo "cd /opt/mcp_facebook && node index.js"
 fi

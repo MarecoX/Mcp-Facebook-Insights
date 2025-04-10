@@ -26,15 +26,15 @@ else
     echo -e "${amarelo}Sistema operacional não identificado. Tentando prosseguir...${reset}"
 fi
 
-# Acessar diretório /tmp
-cd /tmp || {
-    echo -e "${vermelho}Erro ao acessar o diretório /tmp${reset}"
+# Acessar diretório /opt
+cd /opt || {
+    echo -e "${vermelho}Erro ao acessar o diretório /opt${reset}"
     exit 1
 }
 
 # Verificar se o diretório mcp_facebook já existe
 if [ -d "mcp_facebook" ]; then
-    echo -e "${amarelo}O diretório /tmp/mcp_facebook já existe. Removendo...${reset}"
+    echo -e "${amarelo}O diretório /opt/mcp_facebook já existe. Removendo...${reset}"
     rm -rf mcp_facebook
 fi
 
