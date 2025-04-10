@@ -66,7 +66,7 @@ fi
 
 # Instalar dependências
 echo -e "${azul}Instalando dependências...${reset}"
-npm install
+npm install @modelcontextprotocol/sdk@^1.9.0 axios@^1.6.2 dotenv@^16.3.1 zod@^3.22.4
 
 # Verificar se a instalação foi bem-sucedida
 if [ $? -ne 0 ]; then
