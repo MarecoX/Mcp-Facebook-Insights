@@ -48,6 +48,12 @@ fi
 print_message "Criando diretório para o MCP Facebook Insights..."
 mkdir -p /opt/mcp_facebook
 
+# Verificar se o diretório foi criado corretamente
+if [ ! -d "/opt/mcp_facebook" ]; then
+  print_error "Erro ao criar o diretório /opt/mcp_facebook"
+  exit 1
+fi
+
 # Verificar se o git está instalado
 if ! command -v git &> /dev/null; then
   print_warning "Git não encontrado. Tentando baixar usando curl..."
@@ -81,12 +87,30 @@ if ! command -v git &> /dev/null; then
 else
   # Baixar código do GitHub usando git
   print_message "Baixando código do GitHub..."
-  git clone https://github.com/MarecoX/mcp-facebook-insights.git /tmp/mcp_facebook_temp
+  mkdir -p /tmp/mcp_facebook_temp
+  if ! git clone https://github.com/MarecoX/mcp-facebook-insights.git /tmp/mcp_facebook_temp; then
+    print_error "Erro ao clonar o repositório. Verifique sua conexão com a internet."
+    exit 1
+  fi
+
+  # Verificar se o diretório temporário contém arquivos
+  if [ ! "$(ls -A /tmp/mcp_facebook_temp)" ]; then
+    print_error "O diretório temporário está vazio. Falha ao baixar os arquivos."
+    exit 1
+  fi
 
   # Mover arquivos para o diretório correto
+  print_message "Copiando arquivos para o diretório de instalação..."
   cp -r /tmp/mcp_facebook_temp/* /opt/mcp_facebook/
 
+  # Verificar se a cópia foi bem-sucedida
+  if [ ! "$(ls -A /opt/mcp_facebook)" ]; then
+    print_error "Falha ao copiar os arquivos para o diretório de instalação."
+    exit 1
+  fi
+
   # Limpar diretório temporário
+  print_message "Limpando arquivos temporários..."
   rm -rf /tmp/mcp_facebook_temp
 fi
 
@@ -99,7 +123,22 @@ fi
 
 # Instalar dependências
 print_message "Instalando dependências..."
-cd /opt/mcp_facebook
+
+# Verificar se o diretório existe e contém o package.json
+if [ ! -d "/opt/mcp_facebook" ] || [ ! -f "/opt/mcp_facebook/package.json" ]; then
+  print_error "Diretório de instalação inválido ou package.json não encontrado."
+  print_message "Conteúdo do diretório /opt/mcp_facebook:"
+  ls -la /opt/mcp_facebook
+  exit 1
+fi
+
+# Mudar para o diretório de instalação
+cd /opt/mcp_facebook || {
+  print_error "Erro ao acessar o diretório /opt/mcp_facebook"
+  exit 1
+}
+
+# Instalar dependências
 npm install
 
 # Informações sobre configuração
