@@ -489,11 +489,9 @@ const server = new Server({
 
 // Configurar handler para listar ferramentas
 server.setRequestHandler(ListToolsRequestSchema, async () => {
-  console.error("Listando ferramentas disponíveis");
+  console.error("Ferramenta requisitada pelo cliente");
   return { tools: TOOL_DEFINITIONS };
 });
-
-// Nota: O suporte ao método listTools para n8n será implementado em uma versão futura
 
 // Configurar handler para executar ferramentas
 server.setRequestHandler(CallToolRequestSchema, async (request) => {
