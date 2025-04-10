@@ -601,6 +601,24 @@ async function main() {
     console.error(`- ${tool.name}: ${tool.description}`);
   });
 
+  // Adicionar handler para mensagens JSON-RPC brutas
+  process.stdin.on('data', async (data) => {
+    try {
+      const message = JSON.parse(data.toString());
+      if (message.method === 'listTools') {
+        console.error('Recebida requisição JSON-RPC bruta para listTools');
+        const response = {
+          jsonrpc: '2.0',
+          id: message.id,
+          result: { tools: TOOL_DEFINITIONS }
+        };
+        console.log(JSON.stringify(response));
+      }
+    } catch (error) {
+      // Ignorar erros de parsing JSON
+    }
+  });
+
   // Sinalizar que estamos prontos para o n8n
   console.log(JSON.stringify({ ready: true }));
 }
