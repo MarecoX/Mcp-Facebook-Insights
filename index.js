@@ -490,27 +490,7 @@ const server = new Server({
 // Configurar handler para listar ferramentas
 server.setRequestHandler(ListToolsRequestSchema, async () => {
   console.error("Ferramenta requesitada pelo cliente");
-
-  // Retornar as ferramentas no formato original
   return { tools: TOOL_DEFINITIONS };
-});
-
-// Adicionar handler para o método listTools (compatível com JSON-RPC 2.0)
-const ListToolsJSONRPCSchema = z.object({
-  jsonrpc: z.literal('2.0'),
-  id: z.any(),
-  method: z.literal('listTools')
-});
-
-server.setRequestHandler(ListToolsJSONRPCSchema, async (request) => {
-  console.error("Recebida requisição JSON-RPC para listTools");
-
-  // Retornar as ferramentas no formato original
-  return {
-    jsonrpc: '2.0',
-    id: request.id,
-    result: { tools: TOOL_DEFINITIONS }
-  };
 });
 
 // Adicionar handler para o método executeTool (compatível com JSON-RPC 2.0)
