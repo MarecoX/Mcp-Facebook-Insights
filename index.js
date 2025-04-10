@@ -13,6 +13,16 @@
 
 const http = require('http');
 const axios = require('axios');
+const readline = require('readline');
+
+// Configuração para suporte a STDIO (usado pelo n8n)
+let isStdioMode = false;
+
+// Verificar se estamos sendo executados pelo n8n (STDIO mode)
+if (!process.stdout.isTTY || process.env.MCP_STDIO_MODE === 'true') {
+  isStdioMode = true;
+  console.log('Iniciando em modo STDIO para integração com n8n...');
+}
 
 // Configuração do Facebook - lê de variáveis de ambiente
 const fbConfig = {
@@ -374,7 +384,158 @@ const executeTools = {
   }
 };
 
-// Lidar com solicitações
+// Função para processar requisições MCP
+async function processMcpRequest(request) {
+  try {
+    // Verificar o tipo de requisição
+    if (request.jsonrpc === '2.0') {
+      // Requisição JSON-RPC 2.0
+      const { method, params, id } = request;
+
+      if (method === 'listTools') {
+        // Listar ferramentas disponíveis
+        return {
+          jsonrpc: '2.0',
+          id,
+          result: { tools }
+        };
+      } else if (method === 'executeTool') {
+        // Executar uma ferramenta
+        const { name, parameters } = params;
+        console.log(`Executando ferramenta: ${name}`);
+
+        // Encontrar a ferramenta pelo nome
+        if (!executeTools[name]) {
+          return {
+            jsonrpc: '2.0',
+            id,
+            error: {
+              code: -32602,
+              message: `Ferramenta '${name}' não encontrada`
+            }
+          };
+        }
+
+        // Executar a ferramenta
+        const result = await executeTools[name](parameters);
+        return {
+          jsonrpc: '2.0',
+          id,
+          result: { result }
+        };
+      } else {
+        // Método desconhecido
+        return {
+          jsonrpc: '2.0',
+          id,
+          error: {
+            code: -32601,
+            message: `Método '${method}' não encontrado`
+          }
+        };
+      }
+    } else {
+      // Requisição HTTP simples
+      if (request.url === '/tools' && request.method === 'GET') {
+        return { tools };
+      } else if (request.url === '/execute' && request.method === 'POST') {
+        const { name, parameters } = request.body;
+        console.log(`Executando ferramenta: ${name}`);
+
+        // Encontrar a ferramenta pelo nome
+        if (!executeTools[name]) {
+          return {
+            error: true,
+            message: `Ferramenta não encontrada: ${name}`
+          };
+        }
+
+        // Executar a ferramenta
+        const result = await executeTools[name](parameters);
+        return { result };
+      } else if (request.url === '/status' && request.method === 'GET') {
+        return {
+          status: 'ok',
+          tools: tools.map(tool => tool.name),
+          version: '1.0.0',
+          name: 'Facebook Insights MCP Server'
+        };
+      } else {
+        return {
+          error: true,
+          message: 'Endpoint não encontrado'
+        };
+      }
+    }
+  } catch (error) {
+    console.error('Erro ao processar requisição MCP:', error);
+    if (request.jsonrpc === '2.0') {
+      return {
+        jsonrpc: '2.0',
+        id: request.id,
+        error: {
+          code: -32603,
+          message: error.message
+        }
+      };
+    } else {
+      return {
+        error: true,
+        message: error.message
+      };
+    }
+  }
+}
+
+// Configurar modo STDIO se necessário
+if (isStdioMode) {
+  const rl = readline.createInterface({
+    input: process.stdin,
+    output: process.stdout,
+    terminal: false
+  });
+
+  // Processar linhas de entrada
+  rl.on('line', async (line) => {
+    try {
+      // Tentar analisar a linha como JSON
+      const request = JSON.parse(line);
+
+      // Processar a requisição
+      const response = await processMcpRequest(request);
+
+      // Enviar a resposta
+      console.log(JSON.stringify(response));
+    } catch (error) {
+      console.error('Erro ao processar linha:', error);
+      // Enviar erro
+      if (line && typeof line === 'string' && line.includes('"id"')) {
+        try {
+          const parsed = JSON.parse(line);
+          console.log(JSON.stringify({
+            jsonrpc: '2.0',
+            id: parsed.id,
+            error: {
+              code: -32700,
+              message: 'Parse error'
+            }
+          }));
+        } catch (e) {
+          console.error('Não foi possível extrair ID da requisição inválida');
+        }
+      }
+    }
+  });
+
+  // Sinalizar que estamos prontos
+  console.error('Servidor MCP do Facebook Insights iniciado em modo STDIO');
+  console.error('Ferramentas disponíveis:');
+  tools.forEach(tool => {
+    console.error(`- ${tool.name}: ${tool.description}`);
+  });
+}
+
+// Lidar com solicitações HTTP
 const server = http.createServer(async (req, res) => {
   // Definir cabeçalhos CORS
   res.setHeader('Access-Control-Allow-Origin', '*');
@@ -388,91 +549,66 @@ const server = http.createServer(async (req, res) => {
     return;
   }
 
-  // Endpoint para listar ferramentas (MCP listTools)
-  if (req.method === 'GET' && req.url === '/tools') {
-    res.writeHead(200, { 'Content-Type': 'application/json' });
-    res.end(JSON.stringify({ tools }));
-    return;
-  }
+  // Preparar objeto de requisição para processMcpRequest
+  const request = {
+    method: req.method,
+    url: req.url,
+    body: {}
+  };
 
-  // Endpoint para executar uma ferramenta (MCP executeTool)
-  if (req.method === 'POST' && req.url === '/execute') {
+  // Processar corpo da requisição se for POST
+  if (req.method === 'POST') {
     let body = '';
-
-    // Coletar corpo da solicitação
     req.on('data', chunk => {
       body += chunk.toString();
     });
 
-    // Processar a solicitação
-    req.on('end', async () => {
-      try {
-        // Analisar o corpo da solicitação
-        const { name, parameters } = JSON.parse(body);
-
-        console.log(`Executando ferramenta: ${name}`);
-
-        // Verificar se a ferramenta existe
-        if (!executeTools[name]) {
-          res.writeHead(404, { 'Content-Type': 'application/json' });
-          res.end(JSON.stringify({
-            error: true,
-            message: `Ferramenta não encontrada: ${name}`
-          }));
-          return;
+    await new Promise((resolve) => {
+      req.on('end', () => {
+        try {
+          request.body = JSON.parse(body);
+        } catch (error) {
+          console.error('Erro ao analisar corpo da requisição:', error);
         }
-
-        // Executar a ferramenta
-        const result = await executeTools[name](parameters);
-
-        // Enviar a resposta
-        res.writeHead(200, { 'Content-Type': 'application/json' });
-        res.end(JSON.stringify({ result }));
-      } catch (error) {
-        console.error('Erro ao processar solicitação:', error.message);
-
-        // Enviar resposta de erro
-        res.writeHead(500, { 'Content-Type': 'application/json' });
-        res.end(JSON.stringify({
-          error: true,
-          message: error.message
-        }));
-      }
+        resolve();
+      });
     });
-    return;
   }
 
-  // Endpoint de status
-  if (req.method === 'GET' && req.url === '/status') {
-    res.writeHead(200, { 'Content-Type': 'application/json' });
-    res.end(JSON.stringify({
-      status: 'ok',
-      tools: tools.map(tool => tool.name),
-      version: '1.0.0',
-      name: 'Facebook Insights MCP Server'
-    }));
-    return;
+  // Processar a requisição usando a função compartilhada
+  const response = await processMcpRequest(request);
+
+  // Determinar o código de status com base na resposta
+  let statusCode = 200;
+  if (response.error === true) {
+    statusCode = 404;
   }
 
-  // Não encontrado
-  res.writeHead(404, { 'Content-Type': 'application/json' });
-  res.end(JSON.stringify({
-    error: true,
-    message: 'Endpoint não encontrado'
-  }));
+  // Enviar a resposta
+  res.writeHead(statusCode, { 'Content-Type': 'application/json' });
+  res.end(JSON.stringify(response));
 });
 
-// Iniciar o servidor
-server.listen(PORT, () => {
-  console.log(`Servidor MCP do Facebook Insights iniciado na porta ${PORT}`);
-  console.log('Ferramentas disponíveis:');
-  tools.forEach(tool => {
-    console.log(`- ${tool.name}: ${tool.description}`);
+// Iniciar o servidor apenas se não estivermos em modo STDIO
+if (!isStdioMode) {
+  server.listen(PORT, () => {
+    console.log(`Servidor MCP do Facebook Insights iniciado na porta ${PORT}`);
+    console.log('Ferramentas disponíveis:');
+    tools.forEach(tool => {
+      console.log(`- ${tool.name}: ${tool.description}`);
+    });
+    console.log('\nStatus das credenciais do Facebook:');
+    if (fbConfig.FB_APP_ID && fbConfig.FB_APP_SECRET && fbConfig.FB_ACCESS_TOKEN) {
+      console.log('- Credenciais configuradas corretamente');
+    } else {
+      console.log('- Credenciais não configuradas. O servidor não funcionará corretamente até que as credenciais sejam fornecidas.');
+    }
   });
-  console.log('\nStatus das credenciais do Facebook:');
-  if (fbConfig.FB_APP_ID && fbConfig.FB_APP_SECRET && fbConfig.FB_ACCESS_TOKEN) {
-    console.log('- Credenciais configuradas corretamente');
-  } else {
-    console.log('- Credenciais não configuradas. O servidor não funcionará corretamente até que as credenciais sejam fornecidas.');
-  }
-});
+} else {
+  // Em modo STDIO, apenas exibir informações básicas
+  console.error('Servidor MCP do Facebook Insights iniciado em modo STDIO');
+  console.error('Ferramentas disponíveis:');
+  tools.forEach(tool => {
+    console.error(`- ${tool.name}: ${tool.description}`);
+  });
+}
