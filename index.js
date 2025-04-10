@@ -491,7 +491,7 @@ const server = new Server({
 server.setRequestHandler(ListToolsRequestSchema, async () => {
   console.error("Ferramenta requesitada pelo cliente");
 
-  // Retornar as ferramentas no formato original
+  // Retornar as ferramentas no formato esperado pelo n8n
   return { tools: TOOL_DEFINITIONS };
 });
 
@@ -505,7 +505,7 @@ const ListToolsJSONRPCSchema = z.object({
 server.setRequestHandler(ListToolsJSONRPCSchema, async (request) => {
   console.error("Recebida requisição JSON-RPC para listTools");
 
-  // Retornar as ferramentas no formato original
+  // Retornar as ferramentas no formato esperado pelo n8n
   return {
     jsonrpc: '2.0',
     id: request.id,

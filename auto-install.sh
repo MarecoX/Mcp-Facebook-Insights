@@ -40,15 +40,8 @@ fi
 
 # Verificar se o diretório /tmp/mcp_facebook já existe
 if [ -d "/tmp/mcp_facebook" ]; then
-  print_warning "O diretório /tmp/mcp_facebook já existe."
-  read -p "Deseja sobrescrever? (s/n): " sobrescrever
-  if [[ "$sobrescrever" == "s" || "$sobrescrever" == "S" ]]; then
-    print_message "Removendo diretório existente..."
-    rm -rf /tmp/mcp_facebook
-  else
-    print_error "Instalação cancelada pelo usuário."
-    exit 1
-  fi
+  print_warning "O diretório /tmp/mcp_facebook já existe. Removendo..."
+  rm -rf /tmp/mcp_facebook
 fi
 
 # Criar diretório para o MCP Facebook Insights
