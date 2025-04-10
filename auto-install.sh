@@ -29,8 +29,13 @@ print_error() {
 
 # Verificar se está rodando como root
 if [ "$EUID" -ne 0 ]; then
-  print_warning "Não está rodando como root. Algumas operações podem falhar."
+  print_warning "Não está rodando como root. Usando diretório do usuário."
+  INSTALL_DIR="$HOME/mcp_facebook"
+else
+  INSTALL_DIR="/opt/mcp_facebook"
 fi
+
+print_message "Diretório de instalação: $INSTALL_DIR"
 
 # Verificar se o diretório /tmp existe
 if [ ! -d "/tmp" ]; then
@@ -38,19 +43,19 @@ if [ ! -d "/tmp" ]; then
   exit 1
 fi
 
-# Verificar se o diretório /opt/mcp_facebook já existe
-if [ -d "/opt/mcp_facebook" ]; then
-  print_warning "O diretório /opt/mcp_facebook já existe. Removendo..."
-  rm -rf /opt/mcp_facebook
+# Verificar se o diretório de instalação já existe
+if [ -d "$INSTALL_DIR" ]; then
+  print_warning "O diretório $INSTALL_DIR já existe. Removendo..."
+  rm -rf "$INSTALL_DIR"
 fi
 
 # Criar diretório para o MCP Facebook Insights
 print_message "Criando diretório para o MCP Facebook Insights..."
-mkdir -p /opt/mcp_facebook
+mkdir -p "$INSTALL_DIR"
 
 # Verificar se o diretório foi criado corretamente
-if [ ! -d "/opt/mcp_facebook" ]; then
-  print_error "Erro ao criar o diretório /opt/mcp_facebook"
+if [ ! -d "$INSTALL_DIR" ]; then
+  print_error "Erro ao criar o diretório $INSTALL_DIR"
   exit 1
 fi
 
@@ -80,7 +85,7 @@ if ! command -v git &> /dev/null; then
   unzip -q /tmp/mcp_facebook_main.zip -d /tmp
 
   # Mover arquivos para o diretório correto
-  cp -r /tmp/mcp-facebook-insights-main/* /opt/mcp_facebook/
+  cp -r /tmp/mcp-facebook-insights-main/* "$INSTALL_DIR"/
 
   # Limpar arquivos temporários
   rm -rf /tmp/mcp_facebook_main.zip /tmp/mcp-facebook-insights-main
@@ -101,10 +106,10 @@ else
 
   # Mover arquivos para o diretório correto
   print_message "Copiando arquivos para o diretório de instalação..."
-  cp -r /tmp/mcp_facebook_temp/* /opt/mcp_facebook/
+  cp -r /tmp/mcp_facebook_temp/* "$INSTALL_DIR"/
 
   # Verificar se a cópia foi bem-sucedida
-  if [ ! "$(ls -A /opt/mcp_facebook)" ]; then
+  if [ ! "$(ls -A "$INSTALL_DIR")" ]; then
     print_error "Falha ao copiar os arquivos para o diretório de instalação."
     exit 1
   fi
@@ -125,16 +130,16 @@ fi
 print_message "Instalando dependências..."
 
 # Verificar se o diretório existe e contém o package.json
-if [ ! -d "/opt/mcp_facebook" ] || [ ! -f "/opt/mcp_facebook/package.json" ]; then
+if [ ! -d "$INSTALL_DIR" ] || [ ! -f "$INSTALL_DIR/package.json" ]; then
   print_error "Diretório de instalação inválido ou package.json não encontrado."
-  print_message "Conteúdo do diretório /opt/mcp_facebook:"
-  ls -la /opt/mcp_facebook
+  print_message "Conteúdo do diretório $INSTALL_DIR:"
+  ls -la "$INSTALL_DIR"
   exit 1
 fi
 
 # Mudar para o diretório de instalação
-cd /opt/mcp_facebook || {
-  print_error "Erro ao acessar o diretório /opt/mcp_facebook"
+cd "$INSTALL_DIR" || {
+  print_error "Erro ao acessar o diretório $INSTALL_DIR"
   exit 1
 }
 
@@ -153,7 +158,7 @@ PORT=8082
 
 # Criar arquivo .env vazio apenas como referência
 print_message "Criando arquivo .env de exemplo..."
-cat > /opt/mcp_facebook/.env.example << EOL
+cat > "$INSTALL_DIR/.env.example" << EOL
 # Exemplo de configuração - NÃO PREENCHA ESTE ARQUIVO
 # Configure estas variáveis no nó 'Execute Command' do n8n
 FB_APP_ID=seu_app_id
@@ -164,16 +169,16 @@ EOL
 
 # Criar script de inicialização
 print_message "Criando script de inicialização..."
-cat > /opt/mcp_facebook/start.sh << EOL
+cat > "$INSTALL_DIR/start.sh" << EOL
 #!/bin/bash
 
 # Iniciar servidor MCP
-cd /opt/mcp_facebook
+cd "$INSTALL_DIR"
 node index.js
 EOL
 
 # Tornar script executável
-chmod +x /opt/mcp_facebook/start.sh
+chmod +x "$INSTALL_DIR/start.sh"
 
 # Instruções para configurar o n8n
 print_success "Instalação concluída com sucesso!"
@@ -181,7 +186,7 @@ echo ""
 print_message "Para iniciar o servidor MCP, configure um nó 'Execute Command' no n8n com:"
 echo ""
 echo "Command: node"
-echo "Arguments: /opt/mcp_facebook/index.js"
+echo "Arguments: $INSTALL_DIR/index.js"
 echo "Environment Variables:"
 echo "FB_APP_ID=seu_app_id"
 echo "FB_APP_SECRET=seu_app_secret"
@@ -201,9 +206,9 @@ read -p "Deseja testar o servidor MCP agora? (s/n): " START_SERVER
 if [[ $START_SERVER == "s" || $START_SERVER == "S" ]]; then
   print_message "Iniciando servidor MCP para teste (pressione Ctrl+C para parar)..."
   print_warning "Lembre-se: Este é apenas um teste. Para uso real, configure o servidor no n8n."
-  cd /opt/mcp_facebook
+  cd "$INSTALL_DIR"
   node index.js
 else
   print_message "Você pode testar o servidor manualmente executando:"
-  echo "cd /opt/mcp_facebook && node index.js"
+  echo "cd $INSTALL_DIR && node index.js"
 fi
