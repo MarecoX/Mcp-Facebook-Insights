@@ -248,9 +248,9 @@ function formatMcpResponse(text, isError = false) {
  */
 function handleError(error, context) {
   console.error(`Erro em ${context}:`, error);
-  
+
   let errorMessage = error.message;
-  
+
   // Verificar se é um erro da API do Facebook
   if (error.response && error.response.data) {
     console.error('Detalhes do erro da API:', error.response.data);
@@ -258,7 +258,7 @@ function handleError(error, context) {
       errorMessage = `Erro da API do Facebook: ${error.response.data.error.message} (código: ${error.response.data.error.code})`;
     }
   }
-  
+
   return formatMcpResponse(`Erro: ${errorMessage}`, true);
 }
 
@@ -467,8 +467,8 @@ const toolHandlers = {
       }
 
       // Determinar o endpoint com base nos parâmetros
-      let endpoint = parsed.campaignId ? 
-        `${parsed.campaignId}/adsets` : 
+      let endpoint = parsed.campaignId ?
+        `${parsed.campaignId}/adsets` :
         `${parsed.accountId}/adsets`;
 
       // Construir parâmetros de consulta
@@ -495,10 +495,10 @@ const toolHandlers = {
       }
 
       // Formatar resposta
-      const contextInfo = parsed.campaignId ? 
-        `campanha ${parsed.campaignId}` : 
+      const contextInfo = parsed.campaignId ?
+        `campanha ${parsed.campaignId}` :
         `conta ${parsed.accountId}`;
-      
+
       return formatMcpResponse(`Conjuntos de anúncios para a ${contextInfo}: ${JSON.stringify(response.data, null, 2)}`);
     } catch (error) {
       return handleError(error, 'facebook-adsets');
@@ -520,8 +520,8 @@ const toolHandlers = {
       }
 
       // Determinar o endpoint com base nos parâmetros
-      let endpoint = parsed.adsetId ? 
-        `${parsed.adsetId}/ads` : 
+      let endpoint = parsed.adsetId ?
+        `${parsed.adsetId}/ads` :
         `${parsed.accountId}/ads`;
 
       // Construir parâmetros de consulta
@@ -548,10 +548,10 @@ const toolHandlers = {
       }
 
       // Formatar resposta
-      const contextInfo = parsed.adsetId ? 
-        `conjunto de anúncios ${parsed.adsetId}` : 
+      const contextInfo = parsed.adsetId ?
+        `conjunto de anúncios ${parsed.adsetId}` :
         `conta ${parsed.accountId}`;
-      
+
       return formatMcpResponse(`Anúncios para o ${contextInfo}: ${JSON.stringify(response.data, null, 2)}`);
     } catch (error) {
       return handleError(error, 'facebook-ads');
@@ -628,13 +628,13 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
     // Executar a ferramenta e retornar o resultado
     const result = await handler(args || {});
     console.error(`Resultado: ${JSON.stringify(result)}`);
-    
+
     // Garantir que o resultado esteja no formato correto
     if (!result.content || !Array.isArray(result.content)) {
       console.error("Resultado em formato incorreto, corrigindo...");
       return formatMcpResponse(JSON.stringify(result));
     }
-    
+
     return result;
   } catch (error) {
     return handleError(error, `execução da ferramenta ${name}`);
@@ -646,11 +646,17 @@ function processN8nMessage(message) {
   // Verificar se é uma requisição no formato n8n
   if (message.type === 'listTools') {
     console.error('Recebida requisição listTools no formato n8n');
-    // Retornar apenas o array de ferramentas sem o wrapper
+
+    // O n8n espera um array simples de ferramentas sem nenhum wrapper
+    // Baseado no código do nó MCP Client, ele tenta processar a resposta de várias maneiras:
+    // 1. Como um array direto
+    // 2. Como um objeto com uma propriedade 'tools' que é um array
+    // 3. Como um objeto com propriedades que são ferramentas
+    // Vamos usar o formato mais simples: um array direto
     console.log(JSON.stringify(TOOL_DEFINITIONS));
     return;
   }
-  
+
   if (message.type === 'callTool' && message.name) {
     console.error(`Recebida requisição callTool no formato n8n para: ${message.name}`);
 
@@ -658,7 +664,9 @@ function processN8nMessage(message) {
     const handler = toolHandlers[message.name];
     if (!handler) {
       console.error(`Ferramenta desconhecida: ${message.name}`);
+      // Formatar erro no formato esperado pelo n8n
       const errorResult = formatMcpResponse(`Erro: Ferramenta '${message.name}' não encontrada`, true);
+      // O n8n espera um array de resultados
       console.log(JSON.stringify([errorResult]));
       return;
     }
@@ -668,8 +676,18 @@ function processN8nMessage(message) {
       .then(result => {
         console.error(`Resultado: ${JSON.stringify(result)}`);
 
-        // Formatar a resposta para o n8n
-        // O n8n espera um array de ferramentas, então envolvemos o resultado em um array
+        // Verificar se o resultado está no formato correto
+        if (!result.content || !Array.isArray(result.content)) {
+          console.error('Resultado em formato incorreto, corrigindo...');
+          result = formatMcpResponse(JSON.stringify(result));
+        }
+
+        // Garantir que isError esteja definido
+        if (result.isError === undefined) {
+          result.isError = false;
+        }
+
+        // O n8n espera um array de resultados
         const formattedResult = [result];
         console.log(JSON.stringify(formattedResult));
       })
@@ -680,7 +698,7 @@ function processN8nMessage(message) {
       });
     return;
   }
-  
+
   console.error(`Mensagem desconhecida: ${JSON.stringify(message)}`);
 }
 
@@ -689,7 +707,7 @@ process.stdin.on('data', async (data) => {
   try {
     const message = JSON.parse(data.toString());
     console.error(`Recebida mensagem: ${JSON.stringify(message)}`);
-    
+
     // Processar a mensagem no formato n8n
     processN8nMessage(message);
   } catch (error) {
